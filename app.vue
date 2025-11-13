@@ -5,8 +5,9 @@
         <NuxtLink to="/" class="font-serif text-2xl font-bold text-primary">
           壮脉智承 - <span class="opacity-80">云端艺术馆</span>
         </NuxtLink>
-        <nav class="text-lg">
+        <nav class="text-lg space-x-6">
           <NuxtLink to="/" class="font-sans text-text-light hover:text-primary transition-colors duration-300">画廊</NuxtLink>
+          <NuxtLink to="/chat" class="font-sans text-text-light hover:text-primary transition-colors duration-300">智能体对话</NuxtLink>
         </nav>
       </div>
     </header>
