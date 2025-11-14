@@ -1,32 +1,26 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
-
+  
+  // 我们不再需要 nuxt-security 来处理这个 iframe，但保留它对未来有好处
   modules: [
-    "@nuxtjs/tailwindcss",
-    [
-      "@nuxtjs/google-fonts",
-      {
-        families: {
-          "Playfair Display": {
-            wght: [400, 700],
-            ital: [400],
-          },
-          Inter: {
-            wght: [400, 500, 700],
-          },
-        },
-        display: "swap", // 使用 swap 策略以获得最佳性能
-        prefetch: true,
-        preconnect: true,
-      },
-    ],
+    '@nuxtjs/tailwindcss',
+    'nuxt-security' 
   ],
 
-  // 为整个应用添加页面过渡效果
+  routeRules: {
+    '/': { prerender: true }
+  },
+
   app: {
     pageTransition: { name: 'page', mode: 'out-in' }
   },
 
-  compatibilityDate: "2025-10-30",
-});
+  // security 模块依然有用，但可以移除之前为 gacbai.gxmzu.edu.cn 添加的特定规则
+  security: {
+    headers: {
+      crossOriginEmbedderPolicy: 'unsafe-none' // 或者 'require-corp'
+      // 其他安全头可以根据需要保留
+    }
+  }
+})
