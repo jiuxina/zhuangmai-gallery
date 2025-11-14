@@ -126,8 +126,10 @@ const sendMessage = async () => {
 
 /* 关键修改：为动态渲染的图片设置样式 */
 :deep(.prose img) {
-  max-width: 100%; /* 核心：确保图片不会超出容器宽度 */
-  border-radius: 0.5rem; /* 为图片添加圆角，与气泡风格统一 */
+  /* 将宽度固定为8rem，大约是lg(32rem)的四分之一 */
+  width: 8rem; 
+  height: auto; /* 高度自动，保持图片原始比例 */
+  border-radius: 0.5rem; /* 为图片添加圆角 */
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
 }
