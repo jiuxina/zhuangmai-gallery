@@ -1,36 +1,125 @@
 <template>
-  <div class="chat-container">
-    <iframe
-      :src="chatbotSrc"
-      frameborder="0"
-      class="chat-iframe"
-      title="智能体对话窗口"
-      allow="microphone; camera; clipboard-write;"
-    ></iframe>
+  <div class="flex flex-col h-[85vh] bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <!-- 欢迎信息 -->
+    <div v-if="messages.length === 0" class="flex-grow flex flex-col justify-center items-center">
+      <div class="font-serif text-4xl font-bold text-primary opacity-80">壮脉智承</div>
+      <p class="mt-4 text-text-light dark:text-gray-400">智能对话，即刻开始</p>
+    </div>
+
+    <!-- 聊天记录 -->
+    <div v-else ref="chatHistory" class="flex-grow p-6 space-y-6 overflow-y-auto">
+      <div v-for="(message, index) in messages" :key="index" class="flex" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
+        <div class="max-w-lg px-4 py-3 rounded-xl" :class="message.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-text-main dark:text-gray-200'">
+          <div class="prose dark:prose-invert" v-html="renderMarkdown(message.content)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div class="relative">
+        <textarea
+          v-model="userInput"
+          @keydown.enter.prevent="sendMessage"
+          :disabled="isLoading"
+          class="w-full p-4 pr-16 text-text-main bg-gray-50 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder="请输入您的问题..."
+          rows="1"
+        ></textarea>
+        <button
+          @click="sendMessage"
+          :disabled="isLoading || !userInput.trim()"
+          class="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full text-white transition-colors"
+          :class="isLoading || !userInput.trim() ? 'bg-primary/50 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.0001V4.00006L21 12.0001L3 20.0001Z"></path></svg>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// 将聊天机器人的分享链接放在这里，方便未来修改
-const chatbotSrc = 'https://gacbai.gxmzu.edu.cn/chat/share?shareId=yft3kv5dvrdzdzlemelzbl34';
+import { ref, nextTick } from 'vue';
+import MarkdownIt from 'markdown-it';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const userInput = ref('');
+const messages = ref<Message[]>([]);
+const isLoading = ref(false);
+const chatHistory = ref<HTMLElement | null>(null);
+
+const md = new MarkdownIt();
+const renderMarkdown = (content: string) => md.render(content);
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatHistory.value) {
+      chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
+    }
+  });
+};
+
+const sendMessage = async () => {
+  const trimmedInput = userInput.value.trim();
+  if (!trimmedInput || isLoading.value) return;
+
+  // 1. 将用户消息添加到聊天记录
+  messages.value.push({ role: 'user', content: trimmedInput });
+  userInput.value = '';
+  isLoading.value = true;
+  scrollToBottom();
+
+  // 2. 准备AI的空消息占位符
+  messages.value.push({ role: 'assistant', content: '...' });
+  scrollToBottom();
+
+  try {
+    // 3. 调用我们的后端API代理
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: messages.value.slice(0, -1) }), // 发送除AI占位符外的所有消息
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    // 4. 处理流式响应
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantResponse = '';
+    messages.value[messages.value.length - 1].content = ''; // 清空占位符
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      assistantResponse += decoder.decode(value, { stream: true });
+      messages.value[messages.value.length - 1].content = assistantResponse;
+      scrollToBottom();
+    }
+  } catch (error) {
+    console.error('Error fetching chat response:', error);
+    messages.value[messages.value.length - 1].content = '抱歉，加载回答时遇到问题，请重试。';
+  } finally {
+    isLoading.value = false;
+  }
+};
 </script>
 
 <style scoped>
-.chat-container {
-  /* 关键修改 */
-  height: 90vh; /* 1. 高度改为 85vh */
-  margin-top: -2rem; /* 2. 向上移动，减小与顶栏的间隔 */
-  margin-left: -1.5rem; /* 3. 向左扩展，减小左侧间隔 */
-  margin-right: -1.5rem; /* 4. 向右扩展，减小右侧间隔 */
-  
-  display: flex;
-  flex-direction: column;
+/* 美化滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
 }
-
-.chat-iframe {
-  width: 100%;
-  height: 100%;
-  border-radius: 0.75rem; /* 圆角，与您的网站风格匹配 */
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* 添加一些阴影 */
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
 }
 </style>

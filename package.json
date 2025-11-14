@@ -1,7 +1,7 @@
 {
   "name": "zhuangmai-gallery",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -10,13 +10,13 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "nuxt": "^3.12.3",
-    "vue": "^3.5.22",
-    "vue-router": "^4.6.3"
+    "@nuxtjs/tailwindcss": "6.12.1",
+    "eventsource-parser": "1.1.2",
+    "markdown-it": "14.1.0",
+    "nuxt": "3.12.3",
+    "vue": "3.4.31"
   },
-  "devDependencies": {
-    "@nuxtjs/google-fonts": "^3.2.0",
-    "@nuxtjs/tailwindcss": "^6.14.0",
-    "nuxt-security": "^2.4.0"
+  "overrides": {
+    "cheerio": "1.0.0-rc.11"
   }
 }
