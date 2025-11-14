@@ -10,7 +10,6 @@
     <div v-else ref="chatHistory" class="flex-grow p-6 space-y-6 overflow-y-auto">
       <div v-for="(message, index) in messages" :key="index" class="flex" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
         <div class="max-w-lg px-4 py-3 rounded-xl" :class="message.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-text-main dark:text-gray-200'">
-          <!-- v-html 会正确渲染解析后的HTML -->
           <div class="prose dark:prose-invert max-w-none" v-html="renderMarkdown(message.content)"></div>
         </div>
       </div>
@@ -54,9 +53,7 @@ const messages = ref<Message[]>([]);
 const isLoading = ref(false);
 const chatHistory = ref<HTMLElement | null>(null);
 
-// 关键修改：在初始化时允许HTML渲染
 const md = new MarkdownIt({ html: true });
-
 const renderMarkdown = (content: string) => md.render(content);
 
 const scrollToBottom = () => {
@@ -125,5 +122,13 @@ const sendMessage = async () => {
 /* 确保prose插件不会限制子元素的宽度 */
 .prose {
   max-width: none;
+}
+
+/* 关键修改：为动态渲染的图片设置样式 */
+:deep(.prose img) {
+  max-width: 100%; /* 核心：确保图片不会超出容器宽度 */
+  border-radius: 0.5rem; /* 为图片添加圆角，与气泡风格统一 */
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 </style>
