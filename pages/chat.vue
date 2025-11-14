@@ -10,7 +10,8 @@
     <div v-else ref="chatHistory" class="flex-grow p-6 space-y-6 overflow-y-auto">
       <div v-for="(message, index) in messages" :key="index" class="flex" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
         <div class="max-w-lg px-4 py-3 rounded-xl" :class="message.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-text-main dark:text-gray-200'">
-          <div class="prose dark:prose-invert" v-html="renderMarkdown(message.content)"></div>
+          <!-- v-html 会正确渲染解析后的HTML -->
+          <div class="prose dark:prose-invert max-w-none" v-html="renderMarkdown(message.content)"></div>
         </div>
       </div>
     </div>
@@ -53,7 +54,9 @@ const messages = ref<Message[]>([]);
 const isLoading = ref(false);
 const chatHistory = ref<HTMLElement | null>(null);
 
-const md = new MarkdownIt();
+// 关键修改：在初始化时允许HTML渲染
+const md = new MarkdownIt({ html: true });
+
 const renderMarkdown = (content: string) => md.render(content);
 
 const scrollToBottom = () => {
@@ -68,33 +71,29 @@ const sendMessage = async () => {
   const trimmedInput = userInput.value.trim();
   if (!trimmedInput || isLoading.value) return;
 
-  // 1. 将用户消息添加到聊天记录
   messages.value.push({ role: 'user', content: trimmedInput });
   userInput.value = '';
   isLoading.value = true;
   scrollToBottom();
 
-  // 2. 准备AI的空消息占位符
   messages.value.push({ role: 'assistant', content: '...' });
   scrollToBottom();
 
   try {
-    // 3. 调用我们的后端API代理
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: messages.value.slice(0, -1) }), // 发送除AI占位符外的所有消息
+      body: JSON.stringify({ messages: messages.value.slice(0, -1) }),
     });
 
     if (!response.ok || !response.body) {
       throw new Error(`API request failed with status ${response.status}`);
     }
 
-    // 4. 处理流式响应
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let assistantResponse = '';
-    messages.value[messages.value.length - 1].content = ''; // 清空占位符
+    messages.value[messages.value.length - 1].content = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -121,5 +120,10 @@ const sendMessage = async () => {
 ::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 4px;
+}
+
+/* 确保prose插件不会限制子元素的宽度 */
+.prose {
+  max-width: none;
 }
 </style>
