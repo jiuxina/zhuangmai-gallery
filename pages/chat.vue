@@ -33,6 +33,8 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import MarkdownIt from 'markdown-it';
+// 关键：引入我们需要的专业解析器
+import { createParser, type ParsedEvent } from 'eventsource-parser';
 import InputGuide from '~/components/InputGuide.vue';
 
 interface Message { role: 'user' | 'assistant'; content: string; }
@@ -47,85 +49,73 @@ const uploadedFileId = ref<string | null>(null);
 const isUploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
-// 关键修改：根据您提供的列表，完整定义所有全局变量的初始状态
 const flowVariables = ref<Record<string, any>>({
-  part1question: "",
-  knowledge: "",
-  knowend: "",
-  wenan_name: "",
-  wenan_url: "",
-  wenan_list: "",
-  wenan_choose: "",
-  userchoosewenyan: "",
-  img_url: "",
-  flows_control: -1,
+  part1question: "", knowledge: "", knowend: "", wenan_name: "", wenan_url: "",
+  wenan_list: "", wenan_choose: "", userchoosewenyan: "", img_url: "", flows_control: -1,
 });
-
-let eventSource: EventSource | null = null;
 
 const md = new MarkdownIt({ html: true });
 const renderMarkdown = (content: string) => md.render(content);
 const scrollToBottom = () => nextTick(() => chatHistory.value?.scrollTo({ top: chatHistory.value.scrollHeight, behavior: 'smooth' }));
 
-// --- 核心通信函数 ---
-const startChatStream = (body: object) => {
-  // 由于 EventSource 不支持自定义 body，我们必须手动处理流
-  fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }).then(response => {
-    if (!response.body) {
-      throw new Error('Response has no body');
-    }
+// --- 核心通信函数 (使用 eventsource-parser) ---
+const startChatStream = async (body: object) => {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.body) throw new Error('Response has no body');
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     
-    const processText = ({ done, value }: ReadableStreamReadResult<Uint8Array>): Promise<void> => {
-      if (done) {
-        isLoading.value = false;
-        return Promise.resolve();
-      }
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n\n').filter(line => line.trim() !== '');
-
-      for (const line of lines) {
-        if (line.startsWith('event: variables')) {
-          const dataLine = line.split('\n')[1];
-          const jsonData = dataLine.replace('data: ', '');
+    // 创建一个解析器实例
+    const parser = createParser((event: ParsedEvent | any) => {
+      if (event.type === 'event') {
+        // 处理自定义的 'variables' 事件
+        if (event.name === 'variables') {
           try {
-            const newVars = JSON.parse(jsonData);
+            const newVars = JSON.parse(event.data);
             flowVariables.value = { ...flowVariables.value, ...newVars };
             console.log('Flow variables updated:', flowVariables.value);
           } catch (e) {
             console.error('Failed to parse variables event', e);
           }
-        } else if (line.startsWith('data:')) {
-          const jsonData = line.replace('data: ', '');
+        } 
+        // 处理默认的 'message' 事件
+        else if (event.data) {
           try {
-            const data = JSON.parse(jsonData);
+            const data = JSON.parse(event.data);
             if (data.text) {
               messages.value[messages.value.length - 1].content += data.text;
               scrollToBottom();
             }
           } catch (e) {
-            // 忽略无法解析的 data
+            // 忽略非JSON数据
           }
         }
       }
-      
-      return reader.read().then(processText);
-    };
-    
-    return reader.read().then(processText);
-  }).catch(error => {
+    });
+
+    // 持续读取并解析数据流
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      parser.feed(chunk); // 将每个数据块喂给解析器
+    }
+
+  } catch (error) {
     console.error('Fetch stream error:', error);
-    if(messages.value.length > 0){
+    if (messages.value.length > 0) {
       messages.value[messages.value.length - 1].content = '抱歉，连接时发生错误。';
     }
+  } finally {
     isLoading.value = false;
-  });
+  }
 };
 
 
@@ -138,6 +128,7 @@ onMounted(() => {
   }
 });
 
+// --- 发送消息逻辑 ---
 const sendMessage = (contentOverride?: string) => {
   const content = (contentOverride || userInput.value).trim();
   if (!content || isLoading.value) return;
@@ -214,9 +205,7 @@ const handleGuideSelect = (guide: string) => {
 };
 
 onUnmounted(() => {
-  if (eventSource) eventSource.close();
-  if (recognition) recognition.abort();
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  // No EventSource to close here, as fetch stream handles itself
 });
 </script>
 
