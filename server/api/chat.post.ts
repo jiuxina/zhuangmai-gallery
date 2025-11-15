@@ -7,24 +7,19 @@ export default defineEventHandler(async (event) => {
   const payload: any = {
     messages: messages,
     stream: true,
-    variables: variables, // 传递全局变量
+    variables: variables,
   };
   
-  // 将 fileId 附加到最新一条用户消息中
   if (fileId && messages.length > 0) {
     const lastUserMessage = messages[messages.length - 1];
     if (lastUserMessage.role === 'user') {
-      // 假设API需要 files 字段
       lastUserMessage.files = [{ type: 'file', file_id: fileId }];
     }
   }
 
   const response = await fetch(`${fastGptApiBase}/v1/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${fastGptApiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${fastGptApiKey}` },
     body: JSON.stringify(payload),
   });
 
@@ -44,13 +39,25 @@ export default defineEventHandler(async (event) => {
           }
           try {
             const json = JSON.parse(data);
-            // 假设 choice 结构
+
+            // 关键逻辑：检查并回传更新后的变量
+            // 假设 FastGPT 在 delta.tool_calls 中回传变量
+            if (json.choices[0].delta?.tool_calls?.type === 'workflow') {
+              const variablesData = json.choices[0].delta.tool_calls.data;
+              if (variablesData) {
+                // 发送一个名为 'variables' 的自定义 SSE 事件
+                controller.enqueue(new TextEncoder().encode(`event: variables\ndata: ${JSON.stringify(variablesData)}\n\n`));
+              }
+              return; // 这是一个非内容事件，处理后直接返回
+            }
+
             const text = json.choices[0].delta?.content || '';
             if (text) {
-              controller.enqueue(new TextEncoder().encode(text));
+              // 发送标准的、匿名的 message 事件
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text })}\n\n`));
             }
           } catch (e) {
-            controller.error(e);
+            // 忽略JSON解析错误，因为FastGPT有时会发送非JSON的元数据
           }
         }
       };
