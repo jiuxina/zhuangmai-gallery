@@ -12,9 +12,13 @@
   "dependencies": {
     "@nuxtjs/tailwindcss": "6.12.1",
     "eventsource-parser": "1.1.2",
+    "formidable": "^3.5.1",
     "markdown-it": "14.1.0",
     "nuxt": "3.12.3",
     "vue": "3.4.31"
+  },
+  "devDependencies": {
+    "@types/formidable": "^3.4.5"
   },
   "overrides": {
     "cheerio": "1.0.0-rc.11"
