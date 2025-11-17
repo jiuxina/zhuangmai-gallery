@@ -1,12 +1,12 @@
 <script setup>
-const { data: artworks, pending, error } = await useAsyncData('artworks', () => $fetch('/api/artworks'), { lazy: true })
+  const { data: artworks, pending, error } = await useAsyncData('artworks', () => $fetch('/api/artworks'), { lazy: true })
 
-useHead({
-  title: '云端艺术馆 - 首页',
-  meta: [
-    { name: 'description', content: '探索由AI与用户共同创作的数字壮锦艺术作品。' }
-  ]
-})
+  useHead({
+    title: '云端艺术馆 - 首页',
+    meta: [
+      { name: 'description', content: '探索由AI与用户共同创作的数字壮锦艺术作品。' }
+    ]
+  })
 </script>
 
 <template>
@@ -29,22 +29,22 @@ useHead({
 
     <!-- 作品列表 -->
     <div v-if="artworks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-      <div 
+      <!-- 将整个卡片包裹在 NuxtLink 中 -->
+      <NuxtLink 
         v-for="(artwork, index) in artworks" 
         :key="artwork.id" 
+        :to="`/artwork/${artwork.id}`"
         class="artwork-card group bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
         :style="{ '--delay': `${index * 100}ms` }"
       >
-        <NuxtLink :to="`/artwork/${artwork.id}`">
-          <div class="overflow-hidden">
-            <img :src="artwork.imageUrl" :alt="artwork.title" class="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
-          </div>
-          <div class="p-6">
-            <h2 class="text-2xl font-bold text-text-main group-hover:text-primary transition-colors">{{ artwork.title }}</h2>
-            <p class="text-text-light/80 mt-1">创作者: {{ artwork.author }}</p>
-          </div>
-        </NuxtLink>
-      </div>
+        <div class="overflow-hidden">
+          <img :src="artwork.imageUrl" :alt="artwork.title" class="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+        </div>
+        <div class="p-6">
+          <h2 class="text-2xl font-bold text-text-main group-hover:text-primary transition-colors">{{ artwork.title }}</h2>
+          <p class="text-text-light/80 mt-1">创作者: {{ artwork.author }}</p>
+        </div>
+      </NuxtLink>
     </div>
   </div>
 </template>

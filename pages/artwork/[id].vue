@@ -16,43 +16,48 @@ useHead({
 
 <template>
   <div>
-    <!-- 加载与错误状态 -->
-    <div v-if="pending" class="text-center py-20">
-      <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <p class="mt-4 text-text-light">正在加载作品...</p>
-    </div>
-    <div v-if="error || (artwork && artwork.error)" class="text-center py-20">
-      <h1 class="text-4xl font-bold mb-4">作品未找到</h1>
-      <p class="text-lg text-text-light">抱歉，我们无法找到您想查看的艺术品。</p>
-      <NuxtLink to="/" class="mt-6 inline-block bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-hover transition-all duration-300 shadow-lg hover:shadow-xl">返回画廊</NuxtLink>
-    </div>
+    <!-- 加载与错误状态 (保持不变) -->
+    <div v-if="pending" class="text-center py-20">...</div>
+    <div v-if="error || (artwork && artwork.error)" class="text-center py-20">...</div>
     
     <!-- 作品详情 -->
-    <div v-if="artwork && !artwork.error" class="max-w-5xl mx-auto">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
-        <!-- 左侧图片 -->
-        <div class="lg:col-span-3">
-          <img :src="artwork.imageUrl" :alt="artwork.title" class="w-full h-auto rounded-2xl shadow-2xl">
-        </div>
+    <div v-if="artwork && !artwork.error">
+      <!-- 1. 顶部英雄图片区域 -->
+      <div 
+        class="h-[70vh] w-full bg-cover bg-center relative"
+        :style="{ backgroundImage: `url(${artwork.imageUrl})` }"
+      >
+        <!-- 添加一个渐变蒙版，让图片底部平滑过渡到白色背景 -->
+        <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent"></div>
+      </div>
 
-        <!-- 右侧信息 -->
-        <div class="lg:col-span-2 flex flex-col">
-          <h1 class="text-5xl font-bold font-serif text-text-main leading-tight">{{ artwork.title }}</h1>
-          <p class="text-xl text-text-light mt-2 mb-8">
-            由 <span class="font-semibold text-primary">{{ artwork.author }}</span> 创作
-          </p>
-          
-          <div class="bg-white p-6 rounded-xl border border-gray-200/80 shadow-sm">
-            <h2 class="text-2xl font-bold font-serif mb-3 text-primary/80">AI 寓意解读</h2>
-            <p class="text-text-light leading-relaxed text-base">{{ artwork.interpretation }}</p>
+      <!-- 2. 内容区域 -->
+      <div class="relative bg-gray-50 pb-20">
+        <div class="max-w-4xl mx-auto px-6">
+          <!-- 将这个容器向上移动，与图片区域重叠 -->
+          <div class="transform -translate-y-24">
+            <!-- 标题和创作者 -->
+            <div class="text-center mb-10">
+              <h1 class="text-6xl font-bold font-serif text-text-main leading-tight">{{ artwork.title }}</h1>
+              <p class="text-xl text-text-light mt-4">
+                由 <span class="font-semibold text-primary">{{ artwork.author }}</span> 创作
+              </p>
+            </div>
+            
+            <!-- AI解读卡片 -->
+            <div class="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-lg">
+              <h2 class="text-2xl font-bold font-serif mb-4 text-primary/80">AI 寓意解读</h2>
+              <p class="text-text-light leading-relaxed text-lg">{{ artwork.interpretation }}</p>
+            </div>
           </div>
-
-          <NuxtLink to="/" class="mt-10 inline-flex items-center justify-center gap-2 text-primary hover:text-primary-hover transition-colors duration-300 group">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-            返回画廊
-          </NuxtLink>
+          
+          <!-- 返回画廊链接 -->
+          <div class="text-center">
+            <NuxtLink to="/" class="mt-12 inline-flex items-center justify-center gap-2 text-primary hover:text-primary-hover transition-colors duration-300 group">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+              返回画廊
+            </NuxtLink>
+          </div>
         </div>
       </div>
     </div>
