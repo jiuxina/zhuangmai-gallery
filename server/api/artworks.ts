@@ -3,6 +3,7 @@
 const REAL_API_BASE_URL = 'https://api.zhuangmai.cloud/api/gallery';
 
 // 创建一个可重用的“翻译”函数
+// 这里增加了对新字段 (hashId, fortune, audioUrl, mockupUrl) 的映射
 const formatArtwork = (artwork: any) => {
   if (!artwork || artwork.error) {
     return { error: "Artwork not found" };
@@ -12,7 +13,12 @@ const formatArtwork = (artwork: any) => {
     title: artwork.user_theme,
     author: artwork.user_name,
     imageUrl: artwork.art_image_url,
-    interpretation: artwork.ai_interpretation
+    interpretation: artwork.ai_interpretation,
+    // 【新增】字段映射
+    hashId: artwork.unique_hash,   // 数字指纹
+    fortune: artwork.fortune_text, // 赛博占卜
+    audioUrl: artwork.audio_url,   // TTS语音
+    mockupUrl: artwork.mockup_url  // 文创预览图
   };
 };
 
