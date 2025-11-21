@@ -1,11 +1,23 @@
 <script setup>
-  // 【核心修改】添加 server: false，强制在浏览器端请求数据，避开 Vercel 服务器网络限制
+  // 定义数据转换函数：把后端字段映射为前端字段
+  const transformArtworks = (data) => {
+    if (!Array.isArray(data)) return [];
+    return data.map(item => ({
+      id: item.id,
+      title: item.user_theme,       // 映射: user_theme -> title
+      author: item.user_name,       // 映射: user_name -> author
+      imageUrl: item.art_image_url  // 映射: art_image_url -> imageUrl
+    }));
+  };
+
   const { data: artworks, pending, error } = await useAsyncData(
     'artworks', 
-    () => $fetch('/api/artworks'), 
+    // 【核心】直连阿里云后端 API
+    () => $fetch('https://api.zhuangmai.cloud/api/gallery/list'), 
     { 
       lazy: true, 
-      server: false 
+      server: false, // 强制客户端请求
+      transform: transformArtworks // 收到数据后立即转换格式
     }
   )
 
@@ -37,7 +49,6 @@
 
     <!-- 作品列表 -->
     <div v-if="artworks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-      <!-- 将整个卡片包裹在 NuxtLink 中 -->
       <NuxtLink 
         v-for="(artwork, index) in artworks" 
         :key="artwork.id" 
@@ -58,20 +69,11 @@
 </template>
 
 <style scoped>
-/* 卡片入场动画 */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 .artwork-card {
-  /* 应用动画，并使用 CSS 变量来延迟 */
   animation: fadeInUp 0.8s ease-out both;
   animation-delay: var(--delay);
 }

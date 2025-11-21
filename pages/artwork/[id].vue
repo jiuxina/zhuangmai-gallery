@@ -12,13 +12,30 @@ const md = new MarkdownIt({
 const route = useRoute();
 const { id } = route.params;
 
-// 【核心修改】添加 server: false，强制在客户端渲染时请求数据
+// 定义数据转换函数
+const transformArtworkDetail = (data) => {
+  if (!data || data.error) return null;
+  return {
+    id: data.id,
+    title: data.user_theme,        // 映射字段
+    author: data.user_name,
+    imageUrl: data.art_image_url,
+    interpretation: data.ai_interpretation,
+    fortune: data.fortune_text,
+    hashId: data.unique_hash,
+    audioUrl: data.audio_url,
+    mockupUrl: data.mockup_url
+  };
+};
+
+// 【核心】直连阿里云后端，并在客户端进行数据转换
 const { data: artwork, pending, error } = await useAsyncData(
   `artwork-${id}`, 
-  () => $fetch(`/api/artworks?id=${id}`), 
+  () => $fetch(`https://api.zhuangmai.cloud/api/gallery/list?id=${id}`), 
   { 
     lazy: true,
-    server: false 
+    server: false, // 强制客户端请求
+    transform: transformArtworkDetail // 转换数据结构
   }
 )
 
@@ -32,20 +49,13 @@ const hasExtras = computed(() => {
 // 清洗并渲染寓意解读
 const formattedInterpretation = computed(() => {
   if (!artwork.value || !artwork.value.interpretation) return '';
-  
   let rawText = artwork.value.interpretation;
-
   try {
     if (rawText.trim().startsWith('{')) {
       const jsonObj = JSON.parse(rawText);
-      if (jsonObj.mdText) {
-        rawText = jsonObj.mdText;
-      }
+      if (jsonObj.mdText) rawText = jsonObj.mdText;
     }
-  } catch (e) {
-    console.log('Interpretation is not JSON, using raw text');
-  }
-
+  } catch (e) {}
   rawText = rawText.replace(/^```markdown\s*/i, '').replace(/```$/, '');
   return md.render(rawText);
 });
@@ -54,13 +64,8 @@ const formattedInterpretation = computed(() => {
 const formattedFortune = computed(() => {
   if (!artwork.value || !artwork.value.fortune) return '';
   let text = artwork.value.fortune;
-  
   text = text.replace(/【/g, '<br><br><span class="font-bold text-purple-700 text-lg">【').replace(/】/g, '】</span>');
-  
-  if (text.startsWith('<br><br>')) {
-    text = text.substring(8);
-  }
-  
+  if (text.startsWith('<br><br>')) text = text.substring(8);
   return text;
 });
 
@@ -87,7 +92,6 @@ useHead({
     
     <!-- 作品详情 -->
     <div v-if="artwork && !artwork.error">
-      <!-- 1. 顶部英雄图片区域 -->
       <div 
         class="h-[70vh] w-full bg-cover bg-center relative"
         :style="{ backgroundImage: `url(${artwork.imageUrl})` }"
@@ -95,12 +99,9 @@ useHead({
         <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent"></div>
       </div>
 
-      <!-- 2. 内容区域 -->
       <div class="relative bg-gray-50 pb-20">
         <div class="max-w-5xl mx-auto px-6">
           <div class="transform -translate-y-24">
-            
-            <!-- 标题部分 -->
             <div class="text-center mb-12 drop-shadow-sm">
               <h1 class="text-6xl font-bold font-serif text-gray-900 leading-tight">{{ artwork.title }}</h1>
               <div class="mt-4 flex flex-col items-center gap-2">
@@ -115,8 +116,6 @@ useHead({
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              <!-- 左侧：AI解读 -->
               <div 
                 :class="[
                   'bg-white p-8 md:p-10 rounded-2xl border border-gray-200/60 shadow-xl flex flex-col',
@@ -130,7 +129,6 @@ useHead({
                   </h2>
                 </div>
 
-                <!-- 语音播放器 -->
                 <div v-if="artwork.audioUrl" class="mb-6 bg-primary/5 rounded-xl p-3 flex items-center gap-3 border border-primary/10">
                   <div class="bg-white p-2 rounded-full shadow-sm text-primary">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd" /></svg>
@@ -141,31 +139,21 @@ useHead({
                   </div>
                 </div>
 
-                <!-- 使用 v-html 渲染处理后的 HTML -->
                 <div 
                   class="prose prose-slate max-w-none text-gray-600 leading-loose text-lg text-justify" 
                   v-html="formattedInterpretation"
                 ></div>
               </div>
 
-              <!-- 右侧：特色功能 -->
               <div v-if="hasExtras" class="lg:col-span-5 space-y-6">
-                
-                <!-- 赛博占卜 -->
                 <div v-if="artwork.fortune" class="bg-gradient-to-br from-purple-50 to-indigo-50 p-8 rounded-2xl border border-purple-100 shadow-lg relative overflow-hidden group hover:shadow-xl transition-all duration-300">
                   <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl group-hover:opacity-20 transition-opacity">🔮</div>
-                  <h3 class="text-xl font-bold text-purple-900 mb-4 font-serif flex items-center gap-2">
-                    今日纹样灵签
-                  </h3>
+                  <h3 class="text-xl font-bold text-purple-900 mb-4 font-serif flex items-center gap-2">今日纹样灵签</h3>
                   <div class="relative">
-                    <div 
-                      class="text-purple-800/90 italic leading-relaxed text-lg px-2 font-medium"
-                      v-html="formattedFortune"
-                    ></div>
+                    <div class="text-purple-800/90 italic leading-relaxed text-lg px-2 font-medium" v-html="formattedFortune"></div>
                   </div>
                 </div>
 
-                <!-- 文创预览 -->
                 <div v-if="artwork.mockupUrl" class="bg-white p-6 rounded-2xl border border-gray-100 shadow-lg group">
                   <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <span>🛍️</span> 文创衍生品预览
@@ -175,12 +163,10 @@ useHead({
                     <img :src="artwork.mockupUrl" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out" alt="文创效果图">
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
           
-          <!-- 底部按钮 -->
           <div class="flex flex-col sm:flex-row items-center justify-center gap-6 mt-12 pb-10">
             <NuxtLink to="/" class="inline-flex items-center justify-center gap-2 text-gray-500 hover:text-primary transition-colors duration-300 group px-6 py-3 rounded-full hover:bg-white/50">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor">
@@ -199,7 +185,6 @@ useHead({
               AI 一键生成分享
             </button>
           </div>
-
         </div>
       </div>
     </div>
@@ -209,7 +194,6 @@ useHead({
       :artwork="artwork" 
       @close="showShare = false" 
     />
-
   </div>
 </template>
 
@@ -220,7 +204,6 @@ useHead({
 .custom-audio::-webkit-media-controls-panel {
   background-color: transparent;
 }
-/* 针对 Markdown 内容的一些基础样式优化 */
 :deep(.prose h3) {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -237,6 +220,6 @@ useHead({
   margin-bottom: 1em;
 }
 :deep(.prose strong) {
-  color: #b91c1c; /* 让强调文字变成壮锦红 */
+  color: #b91c1c;
 }
 </style>
