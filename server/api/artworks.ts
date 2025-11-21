@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
   const apiUrl = `${REAL_API_BASE_URL}/list${id ? `?id=${id}` : ''}`;
 
   try {
-    const data = await $fetch<any>(apiUrl);
+    const noCacheUrl = apiUrl + (apiUrl.includes('?') ? '&' : '?') + `_t=${new Date().getTime()}`;
+    const data = await $fetch<any>(noCacheUrl);
 
     if (id) {
       // --- 如果是请求详情，翻译单个对象 ---
