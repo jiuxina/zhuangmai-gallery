@@ -1,19 +1,26 @@
 <script setup>
 import { useRoute } from 'vue-router';
 import { ref, computed } from 'vue';
-// 【新增】引入 Markdown 解析器
 import MarkdownIt from 'markdown-it';
 
 const md = new MarkdownIt({
   html: true,
-  breaks: true, // 把换行符转换成 <br>
+  breaks: true,
   linkify: true
 });
 
 const route = useRoute();
 const { id } = route.params;
 
-const { data: artwork, pending, error } = await useAsyncData(`artwork-${id}`, () => $fetch(`/api/artworks?id=${id}`), { lazy: true })
+// 【核心修改】添加 server: false，强制在客户端渲染时请求数据
+const { data: artwork, pending, error } = await useAsyncData(
+  `artwork-${id}`, 
+  () => $fetch(`/api/artworks?id=${id}`), 
+  { 
+    lazy: true,
+    server: false 
+  }
+)
 
 const showShare = ref(false);
 
@@ -22,45 +29,34 @@ const hasExtras = computed(() => {
   return !!(artwork.value.fortune || artwork.value.mockupUrl);
 });
 
-// --- 【核心修改 1：清洗并渲染寓意解读】 ---
+// 清洗并渲染寓意解读
 const formattedInterpretation = computed(() => {
   if (!artwork.value || !artwork.value.interpretation) return '';
   
   let rawText = artwork.value.interpretation;
 
-  // 1. 尝试检测是否是 JSON 格式 (例如 {"mdText": "..."})
   try {
-    // 如果开头是 {，尝试解析 JSON
     if (rawText.trim().startsWith('{')) {
       const jsonObj = JSON.parse(rawText);
-      // 提取 mdText 字段，如果没有就用原文本
       if (jsonObj.mdText) {
         rawText = jsonObj.mdText;
       }
     }
   } catch (e) {
-    // 解析失败说明不是 JSON，直接用原文本，不做处理
     console.log('Interpretation is not JSON, using raw text');
   }
 
-  // 2. 去掉可能存在的 Markdown 代码块包裹 (```markdown ... ```)
-  // 使用正则表达式替换开头和结尾的 ```markdown 和 ```
   rawText = rawText.replace(/^```markdown\s*/i, '').replace(/```$/, '');
-
-  // 3. 使用 markdown-it 渲染成 HTML
   return md.render(rawText);
 });
 
-// --- 【核心修改 2：美化运势排版】 ---
+// 美化运势排版
 const formattedFortune = computed(() => {
   if (!artwork.value || !artwork.value.fortune) return '';
   let text = artwork.value.fortune;
   
-  // 策略：在每一个 "【" 前面加换行，除了第一个
-  // 并给【标题】加粗
   text = text.replace(/【/g, '<br><br><span class="font-bold text-purple-700 text-lg">【').replace(/】/g, '】</span>');
   
-  // 去掉开头多余的 <br> (如果第一个字符就是换行)
   if (text.startsWith('<br><br>')) {
     text = text.substring(8);
   }
@@ -145,7 +141,7 @@ useHead({
                   </div>
                 </div>
 
-                <!-- 【核心修改】使用 v-html 渲染处理后的 HTML，并添加 prose 类来优化排版 -->
+                <!-- 使用 v-html 渲染处理后的 HTML -->
                 <div 
                   class="prose prose-slate max-w-none text-gray-600 leading-loose text-lg text-justify" 
                   v-html="formattedInterpretation"
@@ -162,7 +158,6 @@ useHead({
                     今日纹样灵签
                   </h3>
                   <div class="relative">
-                    <!-- 【核心修改】使用 v-html 渲染处理后的运势 -->
                     <div 
                       class="text-purple-800/90 italic leading-relaxed text-lg px-2 font-medium"
                       v-html="formattedFortune"

@@ -1,5 +1,13 @@
 <script setup>
-  const { data: artworks, pending, error } = await useAsyncData('artworks', () => $fetch('/api/artworks'), { lazy: true })
+  // 【核心修改】添加 server: false，强制在浏览器端请求数据，避开 Vercel 服务器网络限制
+  const { data: artworks, pending, error } = await useAsyncData(
+    'artworks', 
+    () => $fetch('/api/artworks'), 
+    { 
+      lazy: true, 
+      server: false 
+    }
+  )
 
   useHead({
     title: '云端艺术馆 - 首页',
