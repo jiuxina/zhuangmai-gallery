@@ -3,7 +3,6 @@
 const REAL_API_BASE_URL = 'https://api.zhuangmai.cloud/api/gallery';
 
 // 创建一个可重用的“翻译”函数
-// 这里增加了对新字段 (hashId, fortune, audioUrl, mockupUrl) 的映射
 const formatArtwork = (artwork: any) => {
   if (!artwork || artwork.error) {
     return { error: "Artwork not found" };
@@ -14,7 +13,7 @@ const formatArtwork = (artwork: any) => {
     author: artwork.user_name,
     imageUrl: artwork.art_image_url,
     interpretation: artwork.ai_interpretation,
-    // 【新增】字段映射
+    // 字段映射 (保持您之前的逻辑)
     hashId: artwork.unique_hash,   // 数字指纹
     fortune: artwork.fortune_text, // 赛博占卜
     audioUrl: artwork.audio_url,   // TTS语音
@@ -23,12 +22,19 @@ const formatArtwork = (artwork: any) => {
 };
 
 export default defineEventHandler(async (event) => {
+  // 【核心修改 1】设置响应头：告诉 Vercel Edge 和浏览器绝对不要缓存此响应
+  setResponseHeader(event, 'Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  setResponseHeader(event, 'Pragma', 'no-cache');
+  setResponseHeader(event, 'Expires', '0');
+
   const { id } = getQuery(event);
   // 统一构建请求URL
   const apiUrl = `${REAL_API_BASE_URL}/list${id ? `?id=${id}` : ''}`;
 
   try {
+    // 【核心修改 2】给后端请求加时间戳，防止 Python 服务器那边的缓存
     const noCacheUrl = apiUrl + (apiUrl.includes('?') ? '&' : '?') + `_t=${new Date().getTime()}`;
+    
     const data = await $fetch<any>(noCacheUrl);
 
     if (id) {
