@@ -24,17 +24,16 @@
           
           <!-- 作品图片 -->
           <div class="relative bg-white p-4 shadow-lg border border-ink/5 rotate-1 group-hover:rotate-0 transition-transform duration-700 ease-out z-10">
+            <!-- 【核心修改】CDN 加速详情大图 -->
             <img 
-              :src="artwork.art_image_url" 
+              :src="optimizeDetailImage(artwork.art_image_url)" 
               :alt="artwork.user_theme" 
               class="w-full h-auto object-cover select-none"
             />
           </div>
           
           <div class="flex justify-between items-center text-[10px] text-ink/30 font-mono mt-8 px-2 tracking-widest">
-            <!-- 壮语替换: Hauh (号) -->
             <span>Hauh: {{ artwork.id }}</span>
-            <!-- 壮语替换: Yunh (云) -->
             <span class="animate-pulse">Yunh</span>
           </div>
         </div>
@@ -58,7 +57,6 @@
           <div v-if="formattedInterpretation" class="opacity-0 animate-enter-medium relative" style="animation-delay: 0.25s">
             <div class="absolute -top-3 -left-2 text-6xl text-ink/5 font-serif">“</div>
             <div class="relative bg-white/40 p-6 border-y border-ink/10 backdrop-blur-sm">
-              <!-- 壮语替换: AI Gaii (AI 解读) -->
               <h3 class="font-bold text-indigo mb-3 flex items-center text-sm tracking-widest uppercase">
                 <span class="mr-2">🔮</span> AI Gaii
               </h3>
@@ -80,11 +78,9 @@
                 <span v-else>▶</span>
               </button>
               <div class="flex-1 overflow-hidden">
-                <!-- 壮语替换: Sing Vwnz (文化之声) -->
                 <div class="text-xs text-indigo/60 font-bold uppercase tracking-widest mb-0.5">Sing Vwnz</div>
                 <div class="text-sm text-ink font-serif truncate">非遗之声 · 听见壮锦</div>
               </div>
-              <!-- 音频波纹动画 -->
               <div v-if="isPlaying" class="flex items-end space-x-1 h-4">
                 <div class="w-1 bg-cinnabar/60 animate-bounce" style="animation-duration: 0.5s"></div>
                 <div class="w-1 bg-cinnabar/60 animate-bounce" style="animation-duration: 0.7s"></div>
@@ -140,8 +136,8 @@
           <!-- 图片区域 -->
           <div class="w-full md:w-1/2 h-64 md:h-80 bg-gray-100 relative overflow-hidden flex items-center justify-center">
              <div class="absolute inset-0 bg-white/30 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 z-10"></div>
-             <img :src="artwork.mockup_url || artwork.art_image_url" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-             <!-- 壮语替换: Gawq Fuz (看布/预览) -->
+             <!-- 【核心修改】CDN 加速文创图 -->
+             <img :src="optimizeDetailImage(artwork.mockup_url || artwork.art_image_url)" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
              <div v-if="!artwork.mockup_url" class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end justify-center pb-4">
                <span class="text-white text-xs tracking-[0.2em] uppercase border border-white/50 px-3 py-1 backdrop-blur-sm">Gawq Fuz</span>
              </div>
@@ -179,13 +175,11 @@
           <div class="absolute inset-0 bg-ink/70 backdrop-blur-sm transition-opacity" @click="showProductModal = false"></div>
           <div class="bg-paper w-full max-w-md rounded-lg shadow-2xl relative z-10 overflow-hidden flex flex-col transform transition-all duration-300">
             <div class="relative h-64 bg-gray-100 group overflow-hidden">
-              <img :src="artwork.mockup_url || artwork.art_image_url" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <img :src="optimizeDetailImage(artwork.mockup_url || artwork.art_image_url)" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <button @click="showProductModal = false" class="absolute top-3 right-3 w-8 h-8 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-cinnabar transition-colors z-20">✕</button>
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               <div class="absolute bottom-4 left-6 text-white">
-                <!-- 壮语替换: Cangz (收藏) -->
                 <div class="text-xs opacity-80 uppercase tracking-widest">Cangz</div>
-                <!-- 壮语替换: Hienq (限量) -->
                 <div class="text-xl font-serif">{{ artwork.user_theme }} Hienq</div>
               </div>
             </div>
@@ -209,7 +203,7 @@
       <Transition name="modal">
         <ShareModal 
           v-if="showShareModal"
-          :imageUrl="artwork.art_image_url"
+          :imageUrl="optimizeDetailImage(artwork.art_image_url)"
           :title="artwork.user_theme"
           :interpretation="plainInterpretation"
           @close="showShareModal = false"
@@ -228,8 +222,15 @@ const route = useRoute()
 const showProductModal = ref(false)
 const showShareModal = ref(false)
 
-// 【核心修改】添加 lazy: true
-// 这告诉 Nuxt：不要阻塞路由跳转！先跳过去，然后显示 pending 状态。
+// 【核心函数】CDN 详情图加速
+// w=1200: 详情页大图
+// q=85: 质量
+// output=webp: 强制 WebP
+const optimizeDetailImage = (url: string) => {
+  if (!url || url.includes('placeholder')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=1200&q=85&output=webp&n=-1`
+}
+
 const { data: artwork, pending, error } = await useAsyncData(`artwork-${route.params.id}`, async () => {
   const response: any = await $fetch('https://api.zhuangmai.cloud/api/gallery/list')
   const list = Array.isArray(response) ? response : (response?.data || [])
@@ -240,11 +241,10 @@ const { data: artwork, pending, error } = await useAsyncData(`artwork-${route.pa
   }
   return found
 }, {
-  lazy: true // <--- 关键点！
+  lazy: true
 })
 
-
-// 2. 音频控制逻辑
+// 音频控制
 const audioRef = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 
@@ -259,7 +259,7 @@ const toggleAudio = () => {
   }
 }
 
-// 3. AI 解读格式化
+// AI 解读格式化
 const formattedInterpretation = computed(() => {
   if (!artwork.value?.ai_interpretation) return '';
   let text = artwork.value.ai_interpretation;
@@ -273,14 +273,14 @@ const formattedInterpretation = computed(() => {
   return text;
 })
 
-// 4. AI 解读纯文本 (用于分享)
+// AI 解读纯文本
 const plainInterpretation = computed(() => {
   const text = formattedInterpretation.value;
   if (!text) return '暂无解读';
   return text.replace(/[#*`>]/g, '').replace(/<[^>]*>/g, '').substring(0, 300);
 })
 
-// 5. 灵签逻辑
+// 灵签
 const localFortunes = [
   "纹样如流水，上善若水，今日宜顺势而为。",
   "菱形稳固，寓意守护，家宅安宁，万事胜意。",

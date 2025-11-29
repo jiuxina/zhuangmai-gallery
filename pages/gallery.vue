@@ -38,8 +38,9 @@
           <NuxtLink :to="`/artwork/${artwork.id}`" class="block h-full flex flex-col">
             <!-- 图片容器 -->
             <div class="aspect-[4/3] overflow-hidden bg-gray-100 relative mb-4">
+              <!-- 【核心修改】CDN 加速 -->
               <img 
-                :src="artwork.imageUrl" 
+                :src="optimizeImage(artwork.imageUrl)" 
                 :alt="artwork.title"
                 class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 saturate-[0.8] group-hover:saturate-100"
                 loading="lazy"
@@ -57,13 +58,12 @@
                   {{ artwork.title }}
                 </h3>
                 <div class="w-4 h-[1px] bg-ink/10 mx-auto my-2 group-hover:w-12 group-hover:bg-cinnabar/30 transition-all duration-300"></div>
-                <!-- 简介预览 (清洗过的数据) -->
+                <!-- 简介预览 -->
                 <p v-if="artwork.summary" class="text-xs text-ink/40 line-clamp-2 px-2 mb-2 font-serif text-justify">
                   {{ artwork.summary }}
                 </p>
               </div>
               <p class="text-xs text-ink/40 font-mono tracking-widest uppercase mt-2">
-                <!-- 壮语替换 BY -> Boux -->
                 Boux {{ artwork.author }}
               </p>
             </div>
@@ -75,17 +75,24 @@
 </template>
 
 <script setup lang="ts">
-// 辅助函数：清洗 AI 解读文本，提取纯文本用于列表预览
+// 【核心函数】CDN 图片加速
+// w=600: 列表页限制宽度
+// q=80: 质量压缩
+// output=webp: 强制 WebP
+const optimizeImage = (url: string) => {
+  if (!url || url.includes('placeholder')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&q=80&output=webp&n=-1`
+}
+
+// 辅助函数：清洗 AI 解读文本
 const cleanSummary = (text: string) => {
   if (!text) return '';
   try {
-    // 尝试解析 JSON 格式
     if (text.trim().startsWith('{')) {
       const obj = JSON.parse(text);
       if (obj.mdText) text = obj.mdText;
     }
   } catch (e) {}
-  // 移除 Markdown 符号和 HTML 标签，截取前 60 字
   return text.replace(/[#*`>]/g, '').replace(/<[^>]*>/g, '').substring(0, 60) + '...';
 }
 
