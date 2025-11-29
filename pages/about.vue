@@ -35,7 +35,7 @@
             <span class="font-calligraphy text-4xl text-indigo">陈</span>
           </div>
           <div class="text-center space-y-3">
-            <h3 class="text-2xl font-bold text-indigo font-serif">陈朝亨</h3>
+            <h3 class="text-2xl font-bold text-indigo font-serif">陈朝享</h3>
             <p class="text-gold font-bold text-sm tracking-wider uppercase border-b border-gold/20 pb-2 inline-block">
               核心开发 & 运维工程师
             </p>
