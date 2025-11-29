@@ -12,23 +12,45 @@
       
       <!-- 右侧区域：导航菜单 + 登录状态 -->
       <div class="flex items-center space-x-6 md:space-x-10">
-        <!-- 导航菜单 (移到这里) -->
-        <nav class="hidden md:flex space-x-6 text-sm tracking-[0.2em] font-medium">
-          <NuxtLink to="/gallery" class="relative group py-2">
+        <!-- 导航菜单 -->
+        <nav class="hidden md:flex space-x-8 text-sm tracking-[0.2em] font-medium">
+          
+          <!-- 1. Ranzva -> 画廊 -->
+          <NuxtLink to="/gallery" class="relative group py-2 flex flex-col items-center">
             <span class="group-hover:text-cinnabar transition-colors">Ranzva</span>
             <span class="absolute bottom-0 left-0 w-0 h-[1px] bg-cinnabar transition-all duration-300 group-hover:w-full"></span>
+            
+            <!-- 悬浮中文注释 -->
+            <span class="absolute top-full mt-2 text-[10px] text-cinnabar/80 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap font-serif">
+              · 画 廊 ·
+            </span>
           </NuxtLink>
-          <NuxtLink to="/chat" class="relative group py-2">
+
+          <!-- 2. Doxgangj -> 对话 -->
+          <NuxtLink to="/chat" class="relative group py-2 flex flex-col items-center">
             <span class="group-hover:text-cinnabar transition-colors">Doxgangj</span>
             <span class="absolute bottom-0 left-0 w-0 h-[1px] bg-cinnabar transition-all duration-300 group-hover:w-full"></span>
+            
+            <!-- 悬浮中文注释 -->
+            <span class="absolute top-full mt-2 text-[10px] text-cinnabar/80 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap font-serif">
+              · 对 话 ·
+            </span>
           </NuxtLink>
-          <NuxtLink to="/about" class="relative group py-2">
+
+          <!-- 3. Douruengx -> 团队 -->
+          <NuxtLink to="/about" class="relative group py-2 flex flex-col items-center">
             <span class="group-hover:text-cinnabar transition-colors">Douruengx</span>
             <span class="absolute bottom-0 left-0 w-0 h-[1px] bg-cinnabar transition-all duration-300 group-hover:w-full"></span>
+            
+            <!-- 悬浮中文注释 -->
+            <span class="absolute top-full mt-2 text-[10px] text-cinnabar/80 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap font-serif">
+              · 团 队 ·
+            </span>
           </NuxtLink>
+
         </nav>
 
-        <!-- 分割线 (仅在大屏显示) -->
+        <!-- 分割线 -->
         <div class="hidden md:block w-[1px] h-4 bg-ink/20"></div>
 
         <!-- 登录状态 -->
