@@ -4,7 +4,8 @@
       
       <div class="text-center mb-10 space-y-2">
         <p class="text-xs font-bold text-cinnabar tracking-[0.3em] uppercase">Sign In</p>
-        <h1 class="font-calligraphy text-4xl text-ink">登入雅舍</h1>
+        <!-- 【核心修改】文案改为 登入云端 -->
+        <h1 class="font-calligraphy text-4xl text-ink">登入云端</h1>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-6">
@@ -15,7 +16,7 @@
             type="text" 
             required
             class="w-full bg-transparent border-b border-ink/20 py-2 text-ink focus:outline-none focus:border-cinnabar transition-colors"
-            placeholder="请输入您的名号"
+            placeholder="请输入您的账号"
           />
         </div>
 
@@ -26,7 +27,7 @@
             type="password" 
             required
             class="w-full bg-transparent border-b border-ink/20 py-2 text-ink focus:outline-none focus:border-cinnabar transition-colors"
-            placeholder="请输入通行密钥"
+            placeholder="请输入密码"
           />
         </div>
 
@@ -52,7 +53,7 @@
 
 <script setup lang="ts">
 const { login } = useAuth()
-const { showToast } = useToast() // 使用全局 Toast
+const { showToast } = useToast() 
 const router = useRouter()
 const route = useRoute()
 
@@ -62,16 +63,12 @@ const isLoggingIn = ref(false)
 const handleLogin = async () => {
   isLoggingIn.value = true
   
-  // 模拟网络延迟感
   await new Promise(resolve => setTimeout(resolve, 600))
 
   try {
     login(form.username, form.password)
-    
-    // 显示成功弹窗
     showToast('登录成功，欢迎归来', 'success')
 
-    // 【核心】判断是否有回调地址
     const redirectUrl = route.query.redirect as string
     if (redirectUrl) {
       router.push(decodeURIComponent(redirectUrl))
@@ -80,7 +77,6 @@ const handleLogin = async () => {
     }
 
   } catch (e: any) {
-    // 显示错误弹窗
     showToast(e.message, 'error')
   } finally {
     isLoggingIn.value = false

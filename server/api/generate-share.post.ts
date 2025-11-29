@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
         "Authorization": `Bearer ${API_KEY}`
       },
       body: {
-        model: "glm-4v", // 使用视觉模型
+        model: "glm-4.1v-thinking-flash", // 使用视觉模型
         messages: [
           {
             role: "user",

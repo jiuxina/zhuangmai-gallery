@@ -4,7 +4,8 @@
       
       <div class="text-center mb-10 space-y-2">
         <p class="text-xs font-bold text-indigo tracking-[0.3em] uppercase">Register</p>
-        <h1 class="font-calligraphy text-4xl text-ink">注册名牒</h1>
+        <!-- 【核心修改】文案改为 加入共创 -->
+        <h1 class="font-calligraphy text-4xl text-ink">加入共创</h1>
       </div>
 
       <form @submit.prevent="handleRegister" class="space-y-6">
@@ -46,7 +47,7 @@
           class="w-full py-3 border border-ink text-ink mt-4 hover:bg-ink hover:text-white transition-colors tracking-[0.2em] rounded-sm flex items-center justify-center"
           :disabled="isSubmitting"
         >
-           <span v-if="isSubmitting" class="animate-pulse">镌刻中...</span>
+           <span v-if="isSubmitting" class="animate-pulse">处理中...</span>
            <span v-else>提交注册</span>
         </button>
       </form>
@@ -76,7 +77,7 @@ const handleRegister = async () => {
   }
   
   isSubmitting.value = true
-  await new Promise(resolve => setTimeout(resolve, 800)) // 模拟仪式感
+  await new Promise(resolve => setTimeout(resolve, 800)) 
 
   try {
     register(form.username, form.password)
