@@ -1,80 +1,92 @@
-<script setup>
-  // 定义数据转换函数：把后端字段映射为前端字段
-  const transformArtworks = (data) => {
-    if (!Array.isArray(data)) return [];
-    return data.map(item => ({
-      id: item.id,
-      title: item.user_theme,       // 映射: user_theme -> title
-      author: item.user_name,       // 映射: user_name -> author
-      imageUrl: item.art_image_url  // 映射: art_image_url -> imageUrl
-    }));
-  };
-
-  const { data: artworks, pending, error } = await useAsyncData(
-    'artworks', 
-    // 【核心】直连阿里云后端 API
-    () => $fetch('https://api.zhuangmai.cloud/api/gallery/list'), 
-    { 
-      lazy: true, 
-      server: false, // 强制客户端请求
-      transform: transformArtworks // 收到数据后立即转换格式
-    }
-  )
-
-  useHead({
-    title: '云端艺术馆 - 首页',
-    meta: [
-      { name: 'description', content: '探索由AI与用户共同创作的数字壮锦艺术作品。' }
-    ]
-  })
-</script>
-
 <template>
-  <div>
-    <div class="text-center mb-12">
-      <h1 class="text-5xl font-bold mb-3">社区艺术画廊</h1>
-      <p class="text-xl text-text-light">每一件作品，都是传统文化与现代科技的结晶。</p>
-    </div>
+  <div class="h-screen w-full flex flex-col items-center justify-center bg-paper relative overflow-hidden transition-all duration-1000">
+    
+    <!-- 1. Bing 壁纸层 (最底层) -->
+    <!-- 增加 lazy-load 效果，图片加载出来前显示背景色 -->
+    <div 
+      v-if="bing?.url" 
+      class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out"
+      :class="imageLoaded ? 'opacity-100' : 'opacity-0'"
+      :style="{ backgroundImage: `url(${bing.url})` }"
+    ></div>
+    <!-- 隐藏的 img 标签用于监听加载完成事件 -->
+    <img v-if="bing?.url" :src="bing.url" class="hidden" @load="imageLoaded = true" />
 
-    <!-- 骨架屏加载效果 -->
-    <div v-if="pending" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-      <div v-for="i in 6" :key="i" class="bg-white rounded-xl shadow-lg p-4 animate-pulse">
-        <div class="w-full h-64 bg-gray-200 rounded-lg"></div>
-        <div class="mt-4 h-6 bg-gray-200 rounded w-3/4"></div>
-        <div class="mt-2 h-4 bg-gray-200 rounded w-1/2"></div>
+    <!-- 2. 宣纸风格滤镜层 (关键：让风景图变柔和，融入网站风格) -->
+    <!-- 使用 mix-blend-hard-light 或 overlay 让图片和宣纸色融合 -->
+    <div class="absolute inset-0 bg-paper/80 backdrop-blur-[2px]"></div>
+
+    <!-- 3. 原有的光晕装饰 (保留但减淡，增加层次感) -->
+    <div class="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-indigo/10 rounded-full blur-[100px] animate-breathe mix-blend-multiply"></div>
+    <div class="absolute bottom-1/4 left-1/4 w-[600px] h-[600px] bg-cinnabar/10 rounded-full blur-[120px] animate-breathe mix-blend-multiply" style="animation-delay: 1.3s"></div>
+    
+    <!-- 4. 纸张纹理 (最上层质感) -->
+    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-40 pointer-events-none"></div>
+
+    <!-- 主体内容 -->
+    <main class="z-10 text-center space-y-8 p-6 relative">
+      <div class="opacity-0 animate-enter-slow" style="animation-delay: 0.1s">
+        <p class="text-cinnabar tracking-[0.6em] text-xs uppercase font-bold">Vwnzva Cuengh AI</p>
       </div>
-    </div>
 
-    <div v-if="error" class="text-center text-red-500">加载作品失败，请稍后再试。</div>
+      <div class="relative opacity-0 animate-enter-slow" style="animation-delay: 0.3s">
+        <h1 class="font-calligraphy text-7xl md:text-9xl text-ink drop-shadow-sm select-none">
+          壮脉智承
+        </h1>
+        <div class="absolute -top-4 -right-8 opacity-0 animate-enter-fast" style="animation-delay: 1s">
+           <div class="w-12 h-12 border-2 border-cinnabar/50 rounded flex items-center justify-center text-cinnabar text-xs font-serif rotate-12 bg-paper/50 backdrop-blur-sm">
+             云端<br>画廊
+           </div>
+        </div>
+      </div>
 
-    <!-- 作品列表 -->
-    <div v-if="artworks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-      <NuxtLink 
-        v-for="(artwork, index) in artworks" 
-        :key="artwork.id" 
-        :to="`/artwork/${artwork.id}`"
-        class="artwork-card group bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
-        :style="{ '--delay': `${index * 100}ms` }"
-      >
-        <div class="overflow-hidden">
-          <img :src="artwork.imageUrl" :alt="artwork.title" class="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
-        </div>
-        <div class="p-6">
-          <h2 class="text-2xl font-bold text-text-main group-hover:text-primary transition-colors">{{ artwork.title }}</h2>
-          <p class="text-text-light/80 mt-1">创作者: {{ artwork.author }}</p>
-        </div>
-      </NuxtLink>
-    </div>
+      <div class="opacity-0 animate-enter-slow" style="animation-delay: 0.5s">
+        <p class="text-ink/60 text-lg md:text-xl font-light tracking-[0.3em] mt-4">
+          云端艺术馆
+        </p>
+      </div>
+
+      <div class="w-[1px] h-0 bg-gradient-to-b from-transparent via-cinnabar to-transparent mx-auto my-8 opacity-0 animate-[grow-height_0.7s_ease-out_forwards]" style="animation-delay: 0.8s; height: 0;"></div>
+      
+      <p class="max-w-md mx-auto text-ink/80 leading-loose text-sm md:text-base italic opacity-0 animate-enter-slow" style="animation-delay: 0.9s">
+        "经纬交织，千年壮锦。<br>
+        在这里，传统纹样与人工智能相遇，<br>
+        共创属于未来的文化图腾。"
+      </p>
+
+      <div class="pt-10 opacity-0 animate-enter-slow" style="animation-delay: 1.2s">
+        <NuxtLink 
+          to="/gallery" 
+          class="inline-block px-14 py-4 bg-transparent border border-ink/80 text-ink text-sm tracking-[0.4em] group relative overflow-hidden transition-all duration-300 hover:border-transparent hover:shadow-2xl hover:scale-105 backdrop-blur-sm"
+        >
+          <span class="relative z-10 group-hover:text-paper transition-colors duration-300">开启画廊</span>
+          <div class="absolute inset-0 bg-ink transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left ease-out -z-0"></div>
+        </NuxtLink>
+      </div>
+    </main>
+
+    <footer class="absolute bottom-6 w-full text-center opacity-0 animate-enter-fast flex flex-col items-center space-y-2" style="animation-delay: 1.6s">
+      <p class="text-[10px] text-ink/30 tracking-widest">© 2025 AI & Vwnzva</p>
+      <!-- 显示 Bing 图片版权 -->
+      <p v-if="bing?.copyright" class="text-[10px] text-ink/20 font-serif max-w-md truncate px-4">
+        Bing Image: {{ bing.copyright }}
+      </p>
+    </footer>
   </div>
 </template>
 
+<script setup lang="ts">
+const imageLoaded = ref(false)
+
+// 调用刚刚创建的 Server API
+const { data: bing } = await useFetch('/api/bing', {
+  lazy: true, // 不阻塞页面渲染
+  server: false // 客户端获取
+})
+</script>
+
 <style scoped>
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.artwork-card {
-  animation: fadeInUp 0.8s ease-out both;
-  animation-delay: var(--delay);
+@keyframes grow-height {
+  to { height: 64px; }
 }
 </style>
