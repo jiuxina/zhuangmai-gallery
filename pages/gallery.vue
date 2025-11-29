@@ -38,12 +38,13 @@
           <NuxtLink :to="`/artwork/${artwork.id}`" class="block h-full flex flex-col">
             <!-- 图片容器 -->
             <div class="aspect-[4/3] overflow-hidden bg-gray-100 relative mb-4">
-              <!-- 【核心修改】CDN 加速 -->
+              <!-- 【核心优化】前6张优先加载，后面的懒加载 -->
               <img 
                 :src="optimizeImage(artwork.imageUrl)" 
                 :alt="artwork.title"
                 class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 saturate-[0.8] group-hover:saturate-100"
-                loading="lazy"
+                :loading="index < 6 ? 'eager' : 'lazy'"
+                :fetchpriority="index < 6 ? 'high' : 'auto'"
               />
               <!-- 遮罩动效 -->
               <div class="absolute inset-0 bg-ink/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -76,9 +77,6 @@
 
 <script setup lang="ts">
 // 【核心函数】CDN 图片加速
-// w=600: 列表页限制宽度
-// q=80: 质量压缩
-// output=webp: 强制 WebP
 const optimizeImage = (url: string) => {
   if (!url || url.includes('placeholder')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&q=80&output=webp&n=-1`

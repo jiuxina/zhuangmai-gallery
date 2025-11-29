@@ -2,8 +2,12 @@
   <div class="min-h-screen pt-24 pb-12 px-4 bg-paper">
     
     <!-- 加载与错误处理 -->
-    <div v-if="pending" class="flex items-center justify-center py-40">
-       <div class="animate-pulse text-ink/40 tracking-widest font-serif">正在读取藏品信息...</div>
+    <!-- 【核心修改】这里同时判断数据 loading 和 图片 loading -->
+    <div v-if="pending || assetsLoading" class="flex flex-col items-center justify-center py-40 space-y-4">
+       <div class="w-12 h-12 border-2 border-cinnabar/20 border-t-cinnabar rounded-full animate-spin"></div>
+       <div class="animate-pulse text-ink/40 tracking-widest font-serif text-sm">
+         {{ pending ? '正在读取藏品信息...' : '正在渲染数字资产...' }}
+       </div>
     </div>
     
     <div v-else-if="error || !artwork" class="text-center py-40 opacity-0 animate-enter-fast">
@@ -17,14 +21,12 @@
       <!-- 上半部分：左右分栏 -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-20">
         
-        <!-- 左侧：作品展示 (Sticky 效果) -->
+        <!-- 左侧：作品展示 -->
         <div class="lg:col-span-5 relative opacity-0 animate-enter-medium group lg:sticky lg:top-32" style="animation-delay: 0.05s">
-          <!-- 装饰背景 -->
           <div class="absolute inset-0 bg-ink/5 transform translate-x-4 translate-y-4 rounded-sm transition-transform duration-500 group-hover:translate-x-6 group-hover:translate-y-6"></div>
           
-          <!-- 作品图片 -->
           <div class="relative bg-white p-4 shadow-lg border border-ink/5 rotate-1 group-hover:rotate-0 transition-transform duration-700 ease-out z-10">
-            <!-- 【核心修改】CDN 加速详情大图 -->
+            <!-- 图片资源已预加载，此处会瞬间显示 -->
             <img 
               :src="optimizeDetailImage(artwork.art_image_url)" 
               :alt="artwork.user_theme" 
@@ -136,7 +138,7 @@
           <!-- 图片区域 -->
           <div class="w-full md:w-1/2 h-64 md:h-80 bg-gray-100 relative overflow-hidden flex items-center justify-center">
              <div class="absolute inset-0 bg-white/30 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 z-10"></div>
-             <!-- 【核心修改】CDN 加速文创图 -->
+             <!-- 同样已预加载 -->
              <img :src="optimizeDetailImage(artwork.mockup_url || artwork.art_image_url)" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
              <div v-if="!artwork.mockup_url" class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end justify-center pb-4">
                <span class="text-white text-xs tracking-[0.2em] uppercase border border-white/50 px-3 py-1 backdrop-blur-sm">Gawq Fuz</span>
@@ -215,22 +217,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ShareModal from '~/components/ShareModal.vue'
 
 const route = useRoute()
 const showProductModal = ref(false)
 const showShareModal = ref(false)
+// 【核心修改】新增资源加载状态，默认为 true (加载中)
+const assetsLoading = ref(true)
 
-// 【核心函数】CDN 详情图加速
-// w=1200: 详情页大图
-// q=85: 质量
-// output=webp: 强制 WebP
+// CDN 加速
 const optimizeDetailImage = (url: string) => {
   if (!url || url.includes('placeholder')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=1200&q=85&output=webp&n=-1`
 }
 
+// 1. 获取数据
 const { data: artwork, pending, error } = await useAsyncData(`artwork-${route.params.id}`, async () => {
   const response: any = await $fetch('https://api.zhuangmai.cloud/api/gallery/list')
   const list = Array.isArray(response) ? response : (response?.data || [])
@@ -244,7 +246,43 @@ const { data: artwork, pending, error } = await useAsyncData(`artwork-${route.pa
   lazy: true
 })
 
-// 音频控制
+// 【核心修改】监听数据变化，一旦拿到数据，开始预加载图片
+watch(artwork, (newVal) => {
+  if (newVal) {
+    preloadAssets(newVal)
+  }
+}, { immediate: true })
+
+// 【核心修改】预加载函数
+const preloadAssets = (data: any) => {
+  assetsLoading.value = true
+  
+  const imagesToLoad = [
+    optimizeDetailImage(data.art_image_url),
+    optimizeDetailImage(data.mockup_url || data.art_image_url) // 预加载文创图
+  ]
+
+  let loadedCount = 0
+  let hasError = false
+
+  // 辅助加载函数
+  const loadImage = (url: string) => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.src = url
+      img.onload = () => resolve(true)
+      img.onerror = () => resolve(false) // 即使失败也 resolve，防止卡死
+    })
+  }
+
+  // 并行加载所有图片
+  Promise.all(imagesToLoad.map(url => loadImage(url))).then(() => {
+    // 图片加载完成（或失败），解除 loading
+    assetsLoading.value = false
+  })
+}
+
+// ... 后续逻辑保持不变 ...
 const audioRef = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 
@@ -259,7 +297,6 @@ const toggleAudio = () => {
   }
 }
 
-// AI 解读格式化
 const formattedInterpretation = computed(() => {
   if (!artwork.value?.ai_interpretation) return '';
   let text = artwork.value.ai_interpretation;
@@ -273,14 +310,12 @@ const formattedInterpretation = computed(() => {
   return text;
 })
 
-// AI 解读纯文本
 const plainInterpretation = computed(() => {
   const text = formattedInterpretation.value;
   if (!text) return '暂无解读';
   return text.replace(/[#*`>]/g, '').replace(/<[^>]*>/g, '').substring(0, 300);
 })
 
-// 灵签
 const localFortunes = [
   "纹样如流水，上善若水，今日宜顺势而为。",
   "菱形稳固，寓意守护，家宅安宁，万事胜意。",
