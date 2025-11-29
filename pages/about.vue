@@ -93,7 +93,7 @@
 
         <div class="mt-8 text-center bg-white/60 p-8 rounded-2xl border border-indigo/10 backdrop-blur-sm">
           <a 
-            href="https://guoquan.net/" 
+            href="https://www.zhuangmai.cloud/error/" 
             target="_blank" 
             class="inline-block mb-2"
             title="访问个人主页"
