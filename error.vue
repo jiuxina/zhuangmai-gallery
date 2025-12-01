@@ -6,7 +6,7 @@
     </div>
 
     <h1 class="font-calligraphy text-4xl mb-4 text-ink">
-      {{ error.statusCode === 404 ? '寻隐者不遇' : '云深不知处' }}
+      {{ error.statusCode === 404 ? '找不到界面啦' : '云深不知处' }}
     </h1>
 
     <div class="max-w-md space-y-4 mb-12">
