@@ -1,13 +1,52 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* 应用基础字体 */
   body {
-    @apply font-sans;
+    @apply font-sans text-ink bg-paper;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+  }
+}
+
+@layer utilities {
+  /* 壮锦风格滚动条 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #1B345C; /* Indigo */
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #BC2F2E; /* Cinnabar */
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D4A017; /* Gold */
+  }
+
+  /* 壮锦菱形加载动画 */
+  .spinner-zhuang {
+    width: 40px;
+    height: 40px;
+    background-color: #BC2F2E;
+    animation: sk-rotateplane 1.2s infinite ease-in-out;
+  }
+
+  @keyframes sk-rotateplane {
+    0% { 
+      transform: perspective(120px) rotateX(0deg) rotateY(0deg);
+      background-color: #BC2F2E; /* 朱砂 */
+    } 50% { 
+      transform: perspective(120px) rotateX(-180.1deg) rotateY(0deg);
+      background-color: #1B345C; /* 靛蓝 */
+    } 100% { 
+      transform: perspective(120px) rotateX(-180deg) rotateY(-179.9deg);
+      background-color: #BC2F2E;
+    }
   }
 }

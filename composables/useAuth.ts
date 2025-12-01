@@ -1,8 +1,9 @@
+
 export const useAuth = () => {
-  // 全局状态：当前用户
+  // 全局状态
   const currentUser = useState<any>('user', () => null)
   
-  // 初始化：应用启动时检查是否有本地缓存的登录态
+  // 初始化：依然检查本地是否有登录态（保持登录状态）
   const initAuth = () => {
     if (process.client) {
       const stored = localStorage.getItem('current_session')
@@ -12,41 +13,39 @@ export const useAuth = () => {
     }
   }
 
-  // 注册逻辑 (模拟)
-  const register = (username: string, pass: string) => {
-    if (!process.client) return
-    
-    // 获取已有用户列表
-    const users = JSON.parse(localStorage.getItem('users_db') || '[]')
-    
-    // 检查重名
-    if (users.find((u: any) => u.username === username)) {
-      throw new Error('该用户名已被使用 (Gai mingz hauh ciuh)')
+  // 注册逻辑 (升级为调用 API)
+  const register = async (username: string, pass: string) => {
+    try {
+      const data = await $fetch('/api/auth/register', {
+        method: 'POST',
+        body: { username, password: pass }
+      })
+      return data
+    } catch (e: any) {
+      // 抛出错误信息给前端页面显示
+      throw new Error(e.data?.message || '注册失败')
     }
-
-    // 保存新用户
-    const newUser = { id: Date.now(), username, pass } // 仅演示，实际不要存明文密码
-    users.push(newUser)
-    localStorage.setItem('users_db', JSON.stringify(users))
-    return true
   }
 
-  // 登录逻辑 (模拟)
-  const login = (username: string, pass: string) => {
-    if (!process.client) return
+  // 登录逻辑 (升级为调用 API)
+  const login = async (username: string, pass: string) => {
+    try {
+      const data: any = await $fetch('/api/auth/login', {
+        method: 'POST',
+        body: { username, password: pass }
+      })
 
-    const users = JSON.parse(localStorage.getItem('users_db') || '[]')
-    const user = users.find((u: any) => u.username === username && u.pass === pass)
-
-    if (user) {
-      // 登录成功，保存会话
-      // 去掉密码再存入会话状态
-      const { pass, ...safeUser } = user
-      currentUser.value = safeUser
-      localStorage.setItem('current_session', JSON.stringify(safeUser))
-      return true
-    } else {
-      throw new Error('用户名或密码错误 (Cwnghhoh loh)')
+      if (data.success && data.user) {
+        // 更新全局状态
+        currentUser.value = data.user
+        // 本地存储 Session (仅用于保持刷新后不掉线)
+        if (process.client) {
+          localStorage.setItem('current_session', JSON.stringify(data.user))
+        }
+        return true
+      }
+    } catch (e: any) {
+      throw new Error(e.data?.message || '登录失败')
     }
   }
 
