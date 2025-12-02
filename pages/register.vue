@@ -14,40 +14,35 @@
       <form @submit.prevent="handleRegister" class="space-y-6">
         <div class="space-y-2">
           <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">拟定名号 / Mingz</label>
-          <input 
-            v-model="form.username" 
-            type="text" 
-            required
-            class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif"
-            placeholder="请设置用户名"
-          />
+          <input v-model="form.username" type="text" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="请设置用户名" />
         </div>
 
         <div class="space-y-2">
           <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">设置密钥 / Miemaj</label>
-          <input 
-            v-model="form.password" 
-            type="password" 
-            required
-            class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif"
-            placeholder="请设置密码"
-          />
+          <input v-model="form.password" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="请设置密码" />
         </div>
 
         <div class="space-y-2">
           <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">确认密钥 / Naenx</label>
+          <input v-model="form.confirmPass" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="再次输入密码" />
+        </div>
+
+        <!-- 【新增】用户协议勾选 -->
+        <div class="flex items-center gap-2 pt-2">
           <input 
-            v-model="form.confirmPass" 
-            type="password" 
-            required
-            class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif"
-            placeholder="再次输入密码"
+            id="agreement" 
+            type="checkbox" 
+            v-model="form.agreed"
+            class="w-4 h-4 accent-cinnabar cursor-pointer"
           />
+          <label for="agreement" class="text-xs text-ink/60 select-none cursor-pointer">
+            我已阅读并同意 <span class="text-indigo underline">《壮脉智承用户服务协议》</span>
+          </label>
         </div>
 
         <button 
           type="submit" 
-          class="w-full py-4 border-2 border-indigo text-indigo mt-6 hover:bg-indigo hover:text-white transition-all duration-300 tracking-[0.3em] font-bold shadow-sm flex items-center justify-center"
+          class="w-full py-4 border-2 border-indigo text-indigo mt-4 hover:bg-indigo hover:text-white transition-all duration-300 tracking-[0.3em] font-bold shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="isSubmitting"
         >
            <span v-if="isSubmitting" class="animate-pulse">镌刻中...</span>
@@ -65,27 +60,28 @@
   </div>
 </template>
 
-<!-- 仅修改 script 部分 -->
 <script setup lang="ts">
 const { register } = useAuth()
 const { showToast } = useToast()
 const router = useRouter()
 
-const form = reactive({ username: '', password: '', confirmPass: '' })
+const form = reactive({ username: '', password: '', confirmPass: '', agreed: false })
 const isSubmitting = ref(false)
 
 const handleRegister = async () => {
+  if (!form.agreed) {
+    showToast('请先同意用户协议', 'error')
+    return
+  }
   if (form.password !== form.confirmPass) {
-    showToast('两次输入的密码不一致 (Miemaj mbouj doengz)', 'error')
+    showToast('两次输入的密码不一致', 'error')
     return
   }
   
   isSubmitting.value = true
-
+  
   try {
-    // 【修改】加上 await
     await register(form.username, form.password)
-    
     showToast('注册成功，请登录', 'success')
     router.push('/login')
   } catch (e: any) {
