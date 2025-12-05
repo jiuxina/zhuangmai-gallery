@@ -14,7 +14,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div class="group bg-white p-8 rounded-xl shadow-sm hover:shadow-2xl transition-all duration-500 border border-ink/5 hover:-translate-y-2 opacity-0 animate-enter-medium" style="animation-delay: 0.05s">
           <div class="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-6 mx-auto border border-indigo/10"><span class="font-calligraphy text-4xl text-indigo">高</span></div>
-          <div class="text-center space-y-3"><div><a href="https://www.00000721.xyz/" target="_blank" class="inline-block"><h3 class="text-2xl font-bold text-indigo font-serif hover:text-cinnabar transition-colors cursor-pointer flex items-center gap-2">高帅<span class="text-xs opacity-50 font-sans">↗</span></h3></a></div><div><p class="text-gold font-bold text-sm tracking-wider uppercase border-b border-gold/20 pb-2 inline-block">项目负责人 & 架构师</p></div><div class="text-ink/60 text-sm space-y-1 pt-2"><p>全栈视野 | 统筹规划</p></div></div>
+          <div class="text-center space-y-3"><div><a href="https://www.zhuangmai.cloud/" target="_blank" class="inline-block"><h3 class="text-2xl font-bold text-indigo font-serif hover:text-cinnabar transition-colors cursor-pointer flex items-center gap-2">高帅<span class="text-xs opacity-50 font-sans">↗</span></h3></a></div><div><p class="text-gold font-bold text-sm tracking-wider uppercase border-b border-gold/20 pb-2 inline-block">项目负责人 & 架构师</p></div><div class="text-ink/60 text-sm space-y-1 pt-2"><p>全栈视野 | 统筹规划</p></div></div>
         </div>
         <div class="group bg-white p-8 rounded-xl shadow-sm hover:shadow-2xl transition-all duration-500 border border-ink/5 hover:-translate-y-2 opacity-0 animate-enter-medium" style="animation-delay: 0.1s">
           <div class="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-6 mx-auto border border-indigo/10"><span class="font-calligraphy text-4xl text-indigo">陈</span></div>
@@ -31,7 +31,7 @@
         <div class="absolute inset-0 flex items-center justify-center -z-10"><div class="w-full h-[1px] bg-ink/10"></div></div>
         <div class="bg-paper px-8 py-2 mx-auto w-max relative z-10 text-center"><h2 class="font-calligraphy text-4xl text-ink mb-2">指导老师</h2></div>
         <div class="mt-8 text-center bg-white/60 p-8 rounded-2xl border border-indigo/10 backdrop-blur-sm">
-          <a href="https://guoquan.net/" target="_blank" class="inline-block mb-2"><h3 class="text-3xl font-bold text-indigo font-serif hover:text-cinnabar transition-colors cursor-pointer flex items-center justify-center gap-2">郭泉<span class="text-sm opacity-50 font-sans">↗</span></h3></a>
+          <a href="https://www.zhuangmai.cloud/" target="_blank" class="inline-block mb-2"><h3 class="text-3xl font-bold text-indigo font-serif hover:text-cinnabar transition-colors cursor-pointer flex items-center justify-center gap-2">郭泉<span class="text-sm opacity-50 font-sans">↗</span></h3></a>
           <p class="text-cinnabar text-sm tracking-widest uppercase mb-4 block">Lauxsae</p>
           <p class="text-ink/60 italic leading-relaxed max-w-lg mx-auto">"指引团队在数字与非遗的交汇点上探索，为壮脉智承提供深厚的学术支持与战略指导。"</p>
         </div>
