@@ -1,4 +1,3 @@
-
 <template>
   <div class="min-h-screen bg-paper text-ink font-serif relative overflow-hidden transition-colors duration-500 flex flex-col bg-fabric-texture">
     
@@ -22,6 +21,13 @@
               <span class="absolute top-full mt-3 text-xs text-indigo font-bold opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-1 group-hover:translate-y-0 pointer-events-none whitespace-nowrap border-t border-indigo pt-1">画 廊</span>
             </NuxtLink>
 
+            <!-- 锦绣集入口 -->
+            <NuxtLink to="/market" class="relative group py-2 flex flex-col items-center">
+              <span class="group-hover:text-cinnabar transition-colors">Gimjsiu</span>
+              <span class="absolute -bottom-2 w-1.5 h-1.5 bg-cinnabar rotate-45 opacity-0 group-hover:opacity-100 transition-all duration-300"></span>
+              <span class="absolute top-full mt-3 text-xs text-indigo font-bold opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-1 group-hover:translate-y-0 pointer-events-none whitespace-nowrap border-t border-indigo pt-1">锦绣集</span>
+            </NuxtLink>
+
             <NuxtLink to="/chat" class="relative group py-2 flex flex-col items-center">
               <span class="group-hover:text-cinnabar transition-colors">Doxgangj</span>
               <span class="absolute -bottom-2 w-1.5 h-1.5 bg-cinnabar rotate-45 opacity-0 group-hover:opacity-100 transition-all duration-300"></span>
@@ -39,7 +45,7 @@
 
           <div class="text-xs font-bold tracking-widest text-indigo">
             <div v-if="currentUser" class="flex items-center space-x-4">
-              <!-- 【核心修改】将用户名改为 Link，增加 hover 效果 -->
+              <!-- 用户名 Link -->
               <NuxtLink
                 to="/profile"
                 class="hidden sm:inline border-b border-indigo/20 pb-0.5 hover:text-cinnabar hover:border-cinnabar transition-colors cursor-pointer"
@@ -86,10 +92,6 @@ const { initAuth, currentUser, logout } = useAuth()
 
 onMounted(() => {
   initAuth()
-  const coreRoutes = ['/gallery', '/chat', '/about', '/login', '/register', '/profile']
-  coreRoutes.forEach(path => {
-    preloadRouteComponents(path)
-  })
 })
 </script>
 

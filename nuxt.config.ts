@@ -9,6 +9,8 @@ export default defineNuxtConfig({
   ],
   
   app: {
+    // 【关键修改】开启 KeepAlive 缓存
+    keepalive: true, 
     head: {
       title: '壮脉智承 - 云端艺术馆',
       meta: [
@@ -20,7 +22,6 @@ export default defineNuxtConfig({
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;700&display=swap' }
       ]
     },
-    // 全局过渡配置：out-in 模式配合 lazy 加载，解决白屏
     pageTransition: { name: 'page', mode: 'out-in' }
   },
 
@@ -31,11 +32,7 @@ export default defineNuxtConfig({
   },
   
   runtimeConfig: {
-    // 私有配置，只在服务器端可用
-    dashscopeApiKey: '', // 将从 .env 文件读取
-    
-    public: {
-      // 公共配置，前后端都可用
-    }
+    dashscopeApiKey: '', 
+    public: {}
   }
 })

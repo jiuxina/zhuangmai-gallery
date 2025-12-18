@@ -7,71 +7,162 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==========================================
+// 1. 用户系统 (基础)
+// ==========================================
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique
+  password          String              @db.VarChar(255)
+  email             String?             @unique
+  points            Int                 @default(1000) // 积分 (可用于抽卡)
+  balance           Float               @default(0.0)  // 现金余额 (预留)
+  created_at        DateTime            @default(now())
+  last_sign_in      DateTime?
+  avatar            String?             @db.Text
+  bio               String?             @db.Text
+  role              User_role           @default(USER)
+  PointLog          PointLog[]          // 【新增】积分变动记录
+
+  // 关系
+  community_gallery community_gallery[] // 用户的原创作品
+  Interaction       Interaction[]       // 用户的点赞/评论
+  Order             Order[]             // 用户的实体订单
+  ChatMessage       ChatMessage[]       // 用户的 AI 对话记录
+  Session           Session[]
+  
+  // 【新增】商业模式关联
+  CollectionSet     CollectionSet[]     // 管理员/用户发布的卡池
+  UserCard          UserCard[]          // 用户抽到的卡片 (持仓)
+  CreatedCards      CardTemplate[]      // 用户作为原画作者关联的卡面 (用于分润)
+}
+
+model PointLog {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  amount    Int      // 变动金额 (+100 或 -100)
+  reason    String   @db.VarChar(255) // 变动原因 (如: "抽卡消耗", "版权分润", "每日签到")
+  type      String   @default("income") // income(收入), expense(支出)
+  created_at DateTime @default(now())
+  
+  User      User     @relation(fields: [user_id], references: [id])
+  @@index([user_id])
+}
+
+
+enum User_role {
+  USER
+  ADMIN
+}
+
+// ==========================================
+// 2. 社区画廊 (原创作品库)
+// ==========================================
+
+model community_gallery {
+  id                  Int                      @id @default(autoincrement())
+  unique_hash         String?                  @db.VarChar(64)
+  user_name           String?                  @db.VarChar(255)
+  user_theme          String?                  @db.VarChar(255)
+  art_image_url       String                   @db.Text
+  certificate_url     String?                  @db.Text
+  ai_interpretation   String?                  @db.Text
+  fortune_text        String?                  @db.Text
+  audio_url           String?                  @db.Text
+  mockup_url          String?                  @db.Text
+  created_at          DateTime                 @default(now())
+  updatedAt           DateTime?                @updatedAt
+  
+  owner_id            Int
+  User                User                     @relation(fields: [owner_id], references: [id])
+  
+  views               Int?                     @default(0)
+  Interaction         Interaction[]
+  Order               Order[]
+
+  // 【新增】商业化字段
+  status              String                   @default("OWNED") // OWNED(私有), SUBMITTED(已投稿), ACCEPTED(已收录), REJECTED(驳回)
+  split_ratio         Int?                     @default(10)      // 分润比例 (如 10 表示 10%)
+  
+  @@index([owner_id])
+}
+
+// ==========================================
+// 3. 【核心新增】收藏集商业模式 (锦绣集)
+// ==========================================
+
+// 卡池 (例如 "2025 龙年限定集")
+model CollectionSet {
+  id               Int            @id @default(autoincrement())
+  title            String         @db.VarChar(255)
+  description      String?        @db.Text
+  coverUrl         String?        @db.Text       // 卡池封面图
+  status           String         @default("draft") // draft(草稿), active(上架), archived(下架)
+  pricePerDraw     Int            @default(100)  // 单抽价格 (积分)
+  publisher_id     Int
+  created_at       DateTime       @default(now())
+
+  User             User           @relation(fields: [publisher_id], references: [id])
+  CardTemplate     CardTemplate[] // 卡池里包含的卡面
+  
+  @@index([publisher_id])
+}
+
+// 卡面模板 (具体的卡片设计，如 "SSR-龙纹金")
 model CardTemplate {
   id                Int           @id @default(autoincrement())
   collection_set_id Int
-  rarity            String        @db.VarChar(20)
+  
+  // 视觉与属性
   name              String        @db.VarChar(255)
   imageUrl          String        @db.Text
-  totalSupply       Int
-  remaining         Int
-  probability       Float
-  originalAuthorId  Int?
-  shareRatio        Float         @default(0)
+  rarity            String        @db.VarChar(20)  // SSR, SR, R, N
+  probability       Float         // 抽取概率 (如 0.05 代表 5%)
+  
+  // 经济系统
+  originalAuthorId  Int?          // 原画作者 ID (用于分润)
+  shareRatio        Float         @default(0.1) // 作者分润比例 (0.1 = 10%)
+  
+  // 发行限制 (可选)
+  totalSupply       Int           @default(999999)
+  remaining         Int           @default(999999)
+
   CollectionSet     CollectionSet @relation(fields: [collection_set_id], references: [id])
-  User              User?         @relation(fields: [originalAuthorId], references: [id])
-  UserCard          UserCard[]
+  User              User?         @relation(fields: [originalAuthorId], references: [id]) // 原画作者
+  UserCard          UserCard[]    // 实例化的卡片
 
   @@index([collection_set_id])
   @@index([originalAuthorId])
 }
 
-model ChatMessage {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  message    String   @db.Text
-  response   String?  @db.Text
-  created_at DateTime @default(now())
-  User       User     @relation(fields: [user_id], references: [id])
+// 用户持仓 (用户抽到的具体卡片)
+model UserCard {
+  id           Int          @id @default(autoincrement())
+  template_id  Int
+  owner_id     Int
+  cardNumber   Int          @default(0) // 编号 (如 #888)
+  created_at   DateTime     @default(now())
 
-  @@index([user_id])
+  User         User         @relation(fields: [owner_id], references: [id])
+  CardTemplate CardTemplate @relation(fields: [template_id], references: [id])
+
+  @@index([owner_id])
+  @@index([template_id])
 }
 
-model CollectionReward {
-  id                Int           @id @default(autoincrement())
-  user_id           Int
-  collection_set_id Int
-  created_at        DateTime      @default(now())
-  CollectionSet     CollectionSet @relation(fields: [collection_set_id], references: [id])
-  User              User          @relation(fields: [user_id], references: [id])
-
-  @@unique([user_id, collection_set_id])
-  @@index([collection_set_id], map: "CollectionReward_collection_set_id_fkey")
-  @@index([user_id])
-}
-
-model CollectionSet {
-  id               Int                @id @default(autoincrement())
-  title            String             @db.VarChar(255)
-  description      String?            @db.Text
-  coverUrl         String?            @db.Text
-  publisher_id     Int
-  status           String             @default("active")
-  created_at       DateTime           @default(now())
-  CardTemplate     CardTemplate[]
-  CollectionReward CollectionReward[]
-  User             User               @relation(fields: [publisher_id], references: [id])
-
-  @@index([publisher_id])
-}
+// ==========================================
+// 4. 其他辅助系统
+// ==========================================
 
 model Interaction {
   id                Int               @id @default(autoincrement())
   user_id           Int
   artwork_id        Int
-  type              String            @db.VarChar(50)
-  created_at        DateTime          @default(now())
+  type              String            @db.VarChar(50) // like, comment
   content           String?           @db.Text
+  created_at        DateTime          @default(now())
+  
   community_gallery community_gallery @relation(fields: [artwork_id], references: [id])
   User              User              @relation(fields: [user_id], references: [id])
 
@@ -82,19 +173,32 @@ model Interaction {
 
 model Order {
   id                Int                @id @default(autoincrement())
-  type              String             @db.VarChar(50)
+  type              String             @db.VarChar(50) // physical
   price             Float
   status            String             @db.VarChar(50)
   artwork_id        Int?
-  created_at        DateTime           @default(now())
+  user_id           Int
+  
   shipping_address  String?            @db.Text
   shipping_name     String?            @db.VarChar(255)
   shipping_phone    String?            @db.VarChar(50)
-  user_id           Int
+  created_at        DateTime           @default(now())
+
   community_gallery community_gallery? @relation(fields: [artwork_id], references: [id])
   User              User               @relation(fields: [user_id], references: [id])
 
   @@index([artwork_id])
+  @@index([user_id])
+}
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  message    String   @db.Text
+  response   String?  @db.Text
+  created_at DateTime @default(now())
+  User       User     @relation(fields: [user_id], references: [id])
+
   @@index([user_id])
 }
 
@@ -109,67 +213,6 @@ model Session {
   @@index([user_id])
 }
 
-model User {
-  id                Int                 @id @default(autoincrement())
-  username          String              @unique
-  password          String              @db.VarChar(255)
-  email             String?             @unique
-  points            Int                 @default(1000)
-  created_at        DateTime            @default(now())
-  last_sign_in      DateTime?
-  avatar            String?             @db.Text
-  bio               String?             @db.Text
-  role              User_role           @default(USER)
-  CardTemplate      CardTemplate[]
-  ChatMessage       ChatMessage[]
-  CollectionReward  CollectionReward[]
-  CollectionSet     CollectionSet[]
-  Interaction       Interaction[]
-  Order             Order[]
-  Session           Session[]
-  UserCard          UserCard[]
-  community_gallery community_gallery[]
-}
-
-model UserCard {
-  id           Int          @id @default(autoincrement())
-  template_id  Int
-  owner_id     Int
-  cardNumber   Int
-  created_at   DateTime     @default(now())
-  User         User         @relation(fields: [owner_id], references: [id])
-  CardTemplate CardTemplate @relation(fields: [template_id], references: [id])
-
-  @@index([owner_id])
-  @@index([template_id])
-}
-
-model community_gallery {
-  id                  Int                      @id @default(autoincrement())
-  unique_hash         String?                  @db.VarChar(64)
-  user_name           String?                  @db.VarChar(255)
-  user_theme          String?                  @db.VarChar(255)
-  art_image_url       String                   @db.Text
-  certificate_url     String?                  @db.Text
-  ai_interpretation   String?                  @db.Text
-  created_at          DateTime                 @default(now())
-  fortune_text        String?                  @db.Text
-  audio_url           String?                  @db.Text
-  mockup_url          String?                  @db.Text
-  original_owner_name String?                  @db.VarChar(255)
-  price               Float?
-  split_ratio         Int?
-  status              community_gallery_status @default(OWNED)
-  updatedAt           DateTime?
-  owner_id            Int
-  views               Int?                     @default(0)
-  Interaction         Interaction[]
-  Order               Order[]
-  User                User                     @relation(fields: [owner_id], references: [id])
-
-  @@index([owner_id])
-}
-
 model zhuangmai_knowledge {
   id         Int     @id @default(autoincrement())
   category   String? @db.VarChar(50)
@@ -179,16 +222,4 @@ model zhuangmai_knowledge {
   long_desc  String? @db.Text
   image_url  String? @db.Text
   source     String? @db.Text
-}
-
-enum User_role {
-  USER
-  ADMIN
-}
-
-enum community_gallery_status {
-  OWNED
-  SUBMITTED
-  ACCEPTED
-  REJECTED
 }

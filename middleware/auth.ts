@@ -1,13 +1,18 @@
 export default defineNuxtRouteMiddleware((to, from) => {
-  const { currentUser } = useAuth()
-  const { showToast } = useToast() // 引入提示
+  const { currentUser, initAuth } = useAuth()
+  const { showToast } = useToast()
 
-  // 如果用户未登录
+  // 【关键修复】如果是在客户端环境，且状态为空，立即执行初始化逻辑恢复状态
+  if (process.client && !currentUser.value) {
+    initAuth()
+  }
+
+  // 如果经过尝试恢复后，用户依然未登录
   if (!currentUser.value) {
     if (process.client) {
-        showToast('请先登录雅舍 (Qingj Denglu)', 'error')
+      showToast('请先登录雅舍 (Qingj Denglu)', 'error')
     }
-    // 【核心】带上 redirect 参数
+    // 带上 redirect 参数，方便登录后跳回原页面
     return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
   }
 })
