@@ -1,32 +1,56 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  const artworkId = query.id as string;
-  const username = query.username as string;
+  const artworkId = parseInt(query.id as string);
+  const userId = parseInt(query.userId as string);
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) return { likes: 0, liked: false, comments: [] };
-  const redis = new Redis(connectionString);
+  if (isNaN(artworkId)) {
+    return { likes: 0, liked: false, comments: [] };
+  }
 
   try {
-    const likeKey = `artwork:${artworkId}:likes`;
-    const commentKey = `artwork:${artworkId}:comments`;
+    const artwork = await prisma.community_gallery.findUnique({
+      where: { id: artworkId },
+      include: {
+        Interaction: {
+          include: {
+            User: {
+              select: {
+                username: true,
+                avatar: true,
+              }
+            }
+          }
+        },
+      },
+    });
 
-    // 并行获取数据
-    const [likesCount, isLiked, commentsRaw] = await Promise.all([
-      redis.scard(likeKey), // 点赞总数
-      username ? redis.sismember(likeKey, username) : 0, // 当前用户是否点赞
-      redis.lrange(commentKey, 0, -1) // 评论列表
-    ]);
+    if (!artwork) {
+      return { likes: 0, liked: false, comments: [] };
+    }
+
+    const likes = artwork.Interaction.filter(i => i.type === 'like');
+    const comments = artwork.Interaction.filter(i => i.type === 'comment');
+    const liked = userId ? likes.some(l => l.user_id === userId) : false;
 
     return {
-      likes: likesCount,
-      liked: !!isLiked,
-      comments: commentsRaw.map(s => JSON.parse(s))
+      likes: likes.length,
+      liked,
+      comments: comments.map(c => ({
+        id: c.id,
+        content: c.content,
+        created_at: c.created_at,
+        user: c.User,
+      })),
     };
+  } catch (error) {
+    console.error(error);
+    return { likes: 0, liked: false, comments: [] };
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

@@ -3,7 +3,7 @@
   <div class="min-h-screen pt-32 px-4 pb-12 bg-fabric-texture">
     <div class="max-w-7xl mx-auto">
       
-      <div class="text-center mb-16 space-y-6 opacity-0 animate-enter-medium">
+      <div class="text-center mb-12 space-y-6 opacity-0 animate-enter-medium">
         <div class="inline-block relative">
           <h2 class="font-calligraphy text-5xl text-indigo relative z-10">社区艺术画廊</h2>
           <div class="absolute bottom-2 left-0 w-full h-3 bg-gold/30 -z-0"></div>
@@ -11,6 +11,21 @@
         <p class="text-ink/70 max-w-xl mx-auto font-serif tracking-widest text-sm">
           每一件作品，都是传统文化与现代科技的结晶。
         </p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-12 max-w-2xl mx-auto opacity-0 animate-enter-medium" style="animation-delay: 100ms">
+        <div class="relative">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="搜索主题、作者或 ID..."
+            class="w-full py-3 pl-12 pr-4 bg-white/80 backdrop-blur-sm border border-ink/10 rounded-full shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all duration-300 font-serif"
+          />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </div>
+        </div>
       </div>
 
       <div v-if="pending" class="flex flex-col items-center justify-center py-20 space-y-8">
@@ -23,20 +38,32 @@
       <div v-else-if="error" class="text-center py-20 opacity-0 animate-enter-fast">
         <div class="text-cinnabar mb-4 text-4xl font-calligraphy">遗憾</div>
         <p class="text-ink/60 mb-6">暂时无法获取藏品数据</p>
-        <button @click="refresh" class="px-6 py-2 border border-ink/30 text-ink/60 hover:text-white hover:bg-cinnabar hover:border-cinnabar transition-all">重新连接</button>
+        <button @click="handleRefresh" :disabled="isRefreshing" class="px-6 py-2 border border-ink/30 text-ink/60 hover:text-white hover:bg-cinnabar hover:border-cinnabar transition-all disabled:opacity-50 flex items-center justify-center mx-auto">
+          <svg v-if="isRefreshing" class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span v-if="isRefreshing">连接中...</span>
+          <span v-else>重新连接</span>
+        </button>
+      </div>
+
+      <div v-else-if="filteredArtworks.length === 0" class="text-center py-20 opacity-0 animate-enter-fast">
+        <div class="text-indigo mb-4 text-4xl font-calligraphy">无结果</div>
+        <p class="text-ink/60 mb-6">未找到与 "{{ searchQuery }}" 相关的作品。</p>
+        <button @click="searchQuery = ''" class="px-6 py-2 border border-ink/30 text-ink/60 hover:text-white hover:bg-indigo hover:border-indigo transition-all">清空搜索</button>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         <div 
-          v-for="(artwork, index) in artworks" 
+          v-for="(artwork, index) in filteredArtworks"
           :key="artwork.id"
           class="group bg-white p-4 shadow-md hover:shadow-xl transition-all duration-500 border-t-4 border-indigo opacity-0 animate-enter-medium hover:-translate-y-1"
           :style="{ animationDelay: `${index * 60}ms` }"
         >
           <NuxtLink :to="`/artwork/${artwork.id}`" class="block h-full flex flex-col">
             <div class="aspect-[4/3] overflow-hidden bg-gray-100 relative mb-5 shadow-inner">
-              <!-- 图片优化 & 错误回退 -->
-              <img 
+              <img
                 :src="optimizeImage(artwork.imageUrl)" 
                 :alt="artwork.title"
                 class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 saturate-[0.8] group-hover:saturate-100"
@@ -74,6 +101,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+
+const isRefreshing = ref(false)
+const searchQuery = ref('')
+
 const handleImgError = (e: Event, originalUrl: string) => {
   const img = e.target as HTMLImageElement
   if (img.src !== originalUrl) img.src = originalUrl
@@ -106,11 +138,31 @@ const transformArtworks = (data: any) => {
   }));
 };
 
-const { data: artworks, pending, error, refresh } = await useAsyncData(
+const { data: allArtworks, pending, error, refresh } = await useAsyncData(
   'artworks', 
-  () => $fetch('https://api.zhuangmai.cloud/api/gallery/list'), 
+  () => $fetch('/api/gallery/list'),
   { lazy: true, server: false, transform: transformArtworks }
 )
+
+const filteredArtworks = computed(() => {
+  if (!allArtworks.value) return []
+  if (!searchQuery.value.trim()) {
+    return allArtworks.value
+  }
+  const lowerCaseQuery = searchQuery.value.toLowerCase().trim()
+  return allArtworks.value.filter(artwork => {
+    const titleMatch = artwork.title.toLowerCase().includes(lowerCaseQuery)
+    const authorMatch = artwork.author.toLowerCase().includes(lowerCaseQuery)
+    const idMatch = String(artwork.id).includes(lowerCaseQuery)
+    return titleMatch || authorMatch || idMatch
+  })
+})
+
+const handleRefresh = async () => {
+  isRefreshing.value = true
+  await refresh()
+  isRefreshing.value = false
+}
 
 useHead({ title: '壮脉智承 - 社区画廊' })
 </script>

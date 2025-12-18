@@ -1,23 +1,29 @@
 
 <template>
   <div class="min-h-screen pt-32 px-4 pb-20 bg-fabric-texture">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-      
+    <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 space-y-8">
+      <div class="spinner-zhuang"></div>
+      <p class="text-indigo/60 tracking-[0.2em] animate-pulse font-serif text-xs uppercase">
+        Loading Profile...
+      </p>
+    </div>
+    <div v-else class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+
       <!-- 左侧：个人身份卡 -->
       <div class="lg:col-span-1 space-y-6">
         <div class="bg-white p-6 shadow-lg border-t-4 border-indigo animate-enter-medium relative overflow-hidden">
           <div class="absolute top-0 right-0 w-20 h-20 bg-indigo/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          
+
           <div class="text-center relative z-10">
             <div class="w-24 h-24 mx-auto bg-paper border-2 border-gold rounded-full flex items-center justify-center mb-4 shadow-sm relative">
               <span class="font-calligraphy text-4xl text-cinnabar">{{ currentUser?.username?.[0]?.toUpperCase() || '客' }}</span>
               <!-- 签到状态点 -->
               <div v-if="isSignedToday" class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center text-white text-[10px]" title="今日已签到">✓</div>
             </div>
-            
+
             <h2 class="text-xl font-bold text-indigo font-serif mb-1">{{ currentUser?.username }}</h2>
             <p class="text-xs text-ink/40 font-mono tracking-widest uppercase mb-4">UID: {{ 20250000 + (currentUser?.id || 1) }}</p>
-            
+
             <!-- 动态等级徽章 -->
             <div class="inline-flex items-center px-3 py-1 bg-indigo/10 rounded-full border border-indigo/20">
               <span class="w-2 h-2 bg-gold rotate-45 mr-2"></span>
@@ -35,15 +41,17 @@
               <span class="text-indigo font-bold font-mono">{{ daysJoined }} Days</span>
             </div>
           </div>
-          
+
           <!-- 签到按钮 -->
-          <button 
+          <button
             @click="handleSignIn"
-            :disabled="isSignedToday"
+            :disabled="isSignedToday || isSigningIn"
             class="w-full mt-6 py-2 text-xs font-bold tracking-widest uppercase rounded-sm transition-all shadow-sm flex items-center justify-center gap-2"
-            :class="isSignedToday ? 'bg-ink/10 text-ink/40 cursor-default' : 'bg-cinnabar text-white hover:bg-indigo'"
+            :class="isSignedToday ? 'bg-ink/10 text-ink/40 cursor-default' : 'bg-cinnabar text-white hover:bg-indigo disabled:bg-cinnabar/70'"
           >
-            <span v-if="isSignedToday">已签到 / Signed</span>
+            <svg v-if="isSigningIn" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span v-if="isSigningIn">处理中...</span>
+            <span v-else-if="isSignedToday">已签到 / Signed</span>
             <span v-else>每日签到 / Sign In (+10)</span>
           </button>
         </div>
@@ -109,7 +117,7 @@
               <div class="w-24 h-24 bg-gray-100 shrink-0"><img :src="optimizeImage(order.mockup_url || order.art_image_url)" class="w-full h-full object-cover" /></div>
               <div class="flex-1 text-center md:text-left w-full">
                 <div class="flex flex-col md:flex-row md:justify-between mb-2"><h4 class="font-bold text-indigo font-serif text-lg">独家定制帆布袋 - {{ order.user_theme }}</h4><span class="text-cinnabar font-bold text-sm">¥ {{ order.price }}</span></div>
-                <p class="text-xs text-ink/50 mb-4">订单号: ZM{{ order.id }} · {{ new Date(order.createdAt).toLocaleDateString() }}</p>
+                <p class="text-xs text-ink/50 mb-4">订单号: ZM{{ order.id }} · {{ new Date(order.created_at).toLocaleDateString() }}</p>
                 <div class="w-full bg-ink/5 h-1.5 rounded-full overflow-hidden mb-2"><div class="bg-gold h-full relative" style="width: 30%"><div class="absolute right-0 top-0 bottom-0 w-2 bg-white/50 animate-pulse"></div></div></div>
                 <div class="flex justify-between text-[10px] text-ink/40 tracking-widest uppercase"><span>Ordered</span><span class="text-gold font-bold">Shipped</span><span>Delivered</span></div>
               </div>
@@ -139,11 +147,13 @@ const activeTab = ref('collection')
 const showCert = ref(false)
 const certData = reactive({ title: '', imageUrl: '', hash: '', date: '' })
 const myOrders = ref<any[]>([])
+const isLoading = ref(true)
+const isSigningIn = ref(false)
 
 // 用户状态扩展
 const currentPoints = ref(0)
 const realCreatedAt = ref('')
-const lastSignInDate = ref('')
+const lastSignInDate = ref<Date | null>(null)
 
 const openCertificate = (artwork: any) => {
   certData.title = artwork.user_theme || '无题'
@@ -158,28 +168,41 @@ const optimizeImage = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&q=80&output=webp&n=-1`
 }
 
-const { data: galleryData } = await useAsyncData('profile-gallery', () => $fetch('https://api.zhuangmai.cloud/api/gallery/list'), { lazy: true, server: false })
+const { data: galleryData } = await useAsyncData('profile-gallery', () => $fetch('/api/gallery/list'), { lazy: true, server: false })
 
 const myCollection = computed(() => {
   const list = galleryData.value ? (Array.isArray(galleryData.value) ? galleryData.value : galleryData.value.data) : []
   if (!currentUser.value) return []
-  return list.filter((item: any) => item.user_name === currentUser.value.username)
+  return list.filter((item: any) => item.owner_id === currentUser.value.id)
 })
 
-onMounted(async () => {
-  if (currentUser.value) {
-    // 1. 获取真实订单
-    const orders: any = await $fetch('/api/user/orders', { params: { username: currentUser.value.username } })
-    myOrders.value = orders.reverse()
-    
-    // 2. 获取最新用户信息 (积分、签到状态、注册时间)
-    const userInfo: any = await $fetch('/api/user/me', { params: { username: currentUser.value.username } })
+const fetchUserInfo = async () => {
+  if (!currentUser.value) return;
+  try {
+    const userInfo: any = await $fetch('/api/user/me', { params: { username: currentUser.value.username } });
     if (userInfo) {
-      currentPoints.value = userInfo.points
-      realCreatedAt.value = userInfo.createdAt
-      lastSignInDate.value = userInfo.lastSignIn
+      currentPoints.value = userInfo.points;
+      realCreatedAt.value = userInfo.created_at;
+      lastSignInDate.value = userInfo.last_sign_in;
+    }
+  } catch (error) {
+    showToast('无法加载用户最新信息', 'error');
+  }
+};
+
+onMounted(async () => {
+  isLoading.value = true;
+  if (currentUser.value) {
+    try {
+      await Promise.all([
+        $fetch('/api/user/orders', { params: { username: currentUser.value.username } }).then(orders => { myOrders.value = (orders as any[]).reverse() }),
+        fetchUserInfo()
+      ]);
+    } catch (e) {
+      showToast('加载页面数据时出错', 'error')
     }
   }
+  isLoading.value = false;
 })
 
 // 计算加入天数
@@ -202,27 +225,33 @@ const userLevel = computed(() => {
 
 // 判断今日是否签到
 const isSignedToday = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return lastSignInDate.value === today
+  if (!lastSignInDate.value) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const lastSignIn = new Date(lastSignInDate.value)
+  lastSignIn.setHours(0, 0, 0, 0)
+  return lastSignIn.getTime() === today.getTime()
 })
 
 // 签到动作
 const handleSignIn = async () => {
-  if (!currentUser.value) return
+  if (!currentUser.value || isSigningIn.value) return
+  isSigningIn.value = true
   try {
     const res: any = await $fetch('/api/user/action', {
       method: 'POST',
-      body: { username: currentUser.value.username, action: 'signin' }
+      body: { userId: currentUser.value.id, action: 'signin' }
     })
     if (res.success) {
       showToast(res.message, 'success')
-      currentPoints.value = res.points
-      lastSignInDate.value = new Date().toISOString().split('T')[0]
+      await fetchUserInfo();
     } else {
       showToast(res.message, 'info')
     }
   } catch (e) {
     showToast('签到失败', 'error')
+  } finally {
+    isSigningIn.value = false
   }
 }
 

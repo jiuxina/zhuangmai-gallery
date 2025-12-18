@@ -1,5 +1,8 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -9,38 +12,46 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "用户名和密码不能为空" });
   }
 
-  // 获取数据库连接
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) {
-    throw createError({ statusCode: 500, message: "Database connection missing" });
-  }
-
-  const redis = new Redis(connectionString);
-
   try {
     // 1. 检查用户名是否存在
-    // 我们使用 "user:用户名" 作为 Key
-    const userKey = `user:${username}`;
-    const exists = await redis.exists(userKey);
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
 
-    if (exists) {
+    if (existingUser) {
       throw createError({ statusCode: 409, message: "该名号已被注册 (Mingz hauh ciuh)" });
     }
 
     // 2. 创建新用户数据
-    const userData = {
-      id: Date.now(),
-      username,
-      password, // 注意：实际生产中应加密存储，比赛演示存明文尚可接受
-      createdAt: new Date().toISOString()
-    };
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+      },
+    });
 
-    // 3. 存入 Redis
-    await redis.set(userKey, JSON.stringify(userData));
+    // 3. 关联该用户之前已经存在的作品
+    await prisma.community_gallery.updateMany({
+      where: {
+        user_name: username,
+        owner_id: null,
+      },
+      data: {
+        owner_id: newUser.id,
+      },
+    });
 
-    return { success: true, user: { id: userData.id, username: userData.username } };
+    return { success: true, user: { id: newUser.id, username: newUser.username } };
 
+  } catch (error) {
+    // @ts-ignore
+    if (error.statusCode === 409) {
+      throw error;
+    }
+    console.error(error);
+    throw createError({ statusCode: 500, message: "服务器内部错误" });
   } finally {
-    redis.quit(); // 关闭连接
+    await prisma.$disconnect();
   }
 });

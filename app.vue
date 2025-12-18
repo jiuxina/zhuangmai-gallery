@@ -4,7 +4,7 @@
     
     <GlobalToast />
 
-    <header v-if="$route.path !== '/'" class="fixed top-0 left-0 w-full z-50 bg-paper/95 border-b-4 border-cinnabar shadow-sm transition-all duration-300 animate-enter-fast">
+    <header v-if="$route.meta.layout !== false && $route.path !== '/'" class="fixed top-0 left-0 w-full z-50 bg-paper/95 border-b-4 border-cinnabar shadow-sm transition-all duration-300 animate-enter-fast">
       <div class="px-6 lg:px-12 py-4 flex justify-between items-center w-full">
         
         <NuxtLink to="/" class="font-calligraphy text-3xl text-indigo hover:text-cinnabar transition-colors duration-200 flex items-center gap-3">
@@ -40,8 +40,8 @@
           <div class="text-xs font-bold tracking-widest text-indigo">
             <div v-if="currentUser" class="flex items-center space-x-4">
               <!-- 【核心修改】将用户名改为 Link，增加 hover 效果 -->
-              <NuxtLink 
-                to="/profile" 
+              <NuxtLink
+                to="/profile"
                 class="hidden sm:inline border-b border-indigo/20 pb-0.5 hover:text-cinnabar hover:border-cinnabar transition-colors cursor-pointer"
                 title="进入个人中心"
               >
@@ -66,7 +66,7 @@
       <NuxtPage />
     </main>
 
-    <footer class="py-12 text-center space-y-6 bg-indigo text-paper relative mt-auto border-t-8 border-cinnabar">
+    <footer v-if="$route.meta.layout !== false" class="py-12 text-center space-y-6 bg-indigo text-paper relative mt-auto border-t-8 border-cinnabar">
       <div class="absolute top-0 left-0 w-full h-2 bg-[url('https://www.transparenttextures.com/patterns/diamond-upholstery.png')] opacity-20"></div>
       <div>
         <div class="w-12 h-1 bg-gold mx-auto mb-6"></div>

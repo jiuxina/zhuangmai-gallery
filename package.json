@@ -11,13 +11,18 @@
   },
   "dependencies": {
     "@nuxtjs/tailwindcss": "6.12.1",
+    "@prisma/client": "^5.10.2",
+    "bcryptjs": "^2.4.3",
     "eventsource-parser": "1.1.2",
-    "ioredis": "^5.8.2",
     "markdown-it": "^14.1.0",
     "nuxt": "3.12.3",
     "vue": "3.4.31"
   },
   "overrides": {
     "cheerio": "1.0.0-rc.11"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "prisma": "^5.10.2"
   }
 }

@@ -1,27 +1,35 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { username, orderData } = body;
+  const { userId, orderData } = body;
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) throw createError({ statusCode: 500, message: "DB Error" });
-  const redis = new Redis(connectionString);
+  if (!userId) {
+    throw createError({ statusCode: 400, message: "用户ID不能为空" });
+  }
 
   try {
-    const orderId = Date.now().toString().slice(-8); // 简短订单号
-    const newOrder = {
-      id: orderId,
-      ...orderData,
-      status: 'pending_shipment', // 待发货
-      createdAt: new Date().toISOString()
-    };
+    const newOrder = await prisma.order.create({
+      data: {
+        user_id: userId,
+        type: orderData.type,
+        price: orderData.price,
+        status: 'pending_shipment', // 待发货
+        artwork_id: orderData.artworkId,
+        shipping_address: orderData.shippingAddress,
+        shipping_name: orderData.shippingName,
+        shipping_phone: orderData.shippingPhone,
+      },
+    });
 
-    // 存入用户的订单列表 (List 结构)
-    await redis.lpush(`orders:${username}`, JSON.stringify(newOrder));
     return { success: true, order: newOrder };
+  } catch (error) {
+    console.error(error);
+    throw createError({ statusCode: 500, message: "服务器内部错误" });
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

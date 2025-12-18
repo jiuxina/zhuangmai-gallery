@@ -31,6 +31,11 @@ export default defineNuxtConfig({
   },
   
   runtimeConfig: {
-    public: {}
+    // 私有配置，只在服务器端可用
+    dashscopeApiKey: '', // 将从 .env 文件读取
+    
+    public: {
+      // 公共配置，前后端都可用
+    }
   }
 })

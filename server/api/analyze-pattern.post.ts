@@ -1,7 +1,4 @@
 
-import Redis from 'ioredis';
-import crypto from 'crypto';
-
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const { imageUrl } = body;
@@ -10,36 +7,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "Missing imageUrl" });
   }
 
-  // 1. 生成缓存 Key
-  const hash = crypto.createHash('md5').update(imageUrl).digest('hex');
-  const cacheKey = `pattern:analysis:${hash}`;
+  const { dashscopeApiKey } = useRuntimeConfig();
+  const API_KEY = dashscopeApiKey || "sk-94a41c1fbab646b7ad96f61f726a2385";
+  const API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
-  // 获取连接字符串 (优先取 KV_URL，如果没有则取 REDIS_URL，兼容您的截图)
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-
-  let redis: Redis | null = null;
-  
   try {
-    // 2. 连接 Redis
-    if (connectionString) {
-      redis = new Redis(connectionString);
-      
-      const cachedData = await redis.get(cacheKey);
-      if (cachedData) {
-        console.log('✨ Hit Cache: Pattern analysis loaded from Redis');
-        redis.quit(); // 记得关闭连接
-        return JSON.parse(cachedData);
-      }
-    } else {
-      console.warn('⚠️ No REDIS_URL found in .env, skipping cache.');
+    console.log('🤖 Preparing image for Ali DashScope AI...');
+    
+    // 始终将图片转换为 Base64，确保阿里云能稳定接收
+    let base64Content = imageUrl;
+    
+    if (!imageUrl.startsWith('data:image')) {
+      console.log('📥 Downloading image for Base64 conversion...');
+      const imageBuffer = await $fetch(imageUrl, { responseType: 'arrayBuffer' });
+      const base64Image = Buffer.from(imageBuffer as ArrayBuffer).toString('base64');
+      // 默认假设为 jpeg，实际 qwen 模型对 mime type 并不敏感
+      base64Content = `data:image/jpeg;base64,${base64Image}`;
+      console.log('✅ Image converted to Base64');
     }
 
-    console.log('🤖 Miss Cache: Calling AI for analysis...');
-
-    // 3. 调用 AI
-    const API_KEY = "c98ce322385f41068bb3a5232c48109d.6jJVHqbVGtLi3lZP"; 
-    const API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-
+    console.log('🚀 Calling AI API...');
     const response = await $fetch(API_URL, {
       method: "POST",
       headers: {
@@ -47,15 +34,19 @@ export default defineEventHandler(async (event) => {
         "Authorization": `Bearer ${API_KEY}`
       },
       body: {
-        model: "glm-4v",
+        model: "qwen3-vl-30b-a3b-instruct",
         messages: [
           {
             role: "user",
             content: [
               {
+                type: "image_url",
+                image_url: { url: base64Content }
+              },
+              {
                 type: "text",
                 text: `你是一位壮族非遗文化研究专家。请分析这张壮锦艺术图片，识别其中的纹样结构和文化寓意。
-                请务必返回 **纯 JSON 格式** 的数据。
+                请务必返回 **纯 JSON 格式** 的数据，不要包含任何 Markdown 标记（如 \`\`\`json）。
                 返回格式要求如下：
                 {
                   "main": {
@@ -68,37 +59,25 @@ export default defineEventHandler(async (event) => {
                   ],
                   "color": "色彩风格分析（20字以内）"
                 }`
-              },
-              { type: "image_url", image_url: { url: imageUrl } }
+              }
             ]
           }
         ],
-        temperature: 0.1,
-        top_p: 0.7,
-        max_tokens: 1024
+        stream: false 
       }
     });
 
     // @ts-ignore
     let content = response.choices[0].message.content;
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    const result = JSON.parse(content);
+    return JSON.parse(content);
 
-    // 4. 写入缓存
-    if (redis) {
-      await redis.set(cacheKey, JSON.stringify(result), 'EX', 2592000); // 30天过期
-      redis.quit();
-    }
-
-    return result;
-
-  } catch (error) {
-    console.error("Pattern analysis failed:", error);
-    if (redis) redis.quit(); // 确保出错也关闭连接
+  } catch (error: any) {
+    console.error("Pattern analysis failed:", error.data || error);
     throw createError({
-      statusCode: 500,
-      statusMessage: "Failed to analyze pattern."
+      statusCode: error.statusCode || 500,
+      statusMessage: "Failed to analyze pattern.",
+      message: error.data?.error?.message || error.message
     });
   }
 });

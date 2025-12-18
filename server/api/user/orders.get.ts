@@ -1,19 +1,33 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const username = query.username as string;
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) return [];
-  const redis = new Redis(connectionString);
+  if (!username) {
+    return [];
+  }
 
   try {
-    // 获取用户所有订单
-    const ordersRaw = await redis.lrange(`orders:${username}`, 0, -1);
-    return ordersRaw.map(s => JSON.parse(s));
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: {
+        Order: true,
+      },
+    });
+
+    if (!user) {
+      return [];
+    }
+
+    return user.Order;
+  } catch (error) {
+    console.error(error);
+    return [];
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

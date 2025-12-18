@@ -1,38 +1,67 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { type, artworkId, username, content } = body; // type: 'like' | 'comment'
+  const { type, artworkId, userId, content } = body; // type: 'like' | 'comment'
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) throw createError({ statusCode: 500 });
-  const redis = new Redis(connectionString);
+  if (!userId) {
+    throw createError({ statusCode: 401, message: "请先登录" });
+  }
 
   try {
     if (type === 'like') {
-      const key = `artwork:${artworkId}:likes`;
-      // 使用 Set 集合，防止重复点赞，再次点击则取消
-      const isMember = await redis.sismember(key, username);
-      if (isMember) {
-        await redis.srem(key, username);
+      const existingLike = await prisma.interaction.findUnique({
+        where: {
+          user_id_artwork_id_type: {
+            user_id: userId,
+            artwork_id: artworkId,
+            type: 'like',
+          },
+        },
+      });
+
+      if (existingLike) {
+        await prisma.interaction.delete({
+          where: { id: existingLike.id },
+        });
         return { liked: false };
       } else {
-        await redis.sadd(key, username);
+        await prisma.interaction.create({
+          data: {
+            user_id: userId,
+            artwork_id: artworkId,
+            type: 'like',
+          },
+        });
         return { liked: true };
       }
     } 
     else if (type === 'comment') {
-      const key = `artwork:${artworkId}:comments`;
-      const commentData = {
-        username,
-        content,
-        date: new Date().toISOString()
-      };
-      await redis.lpush(key, JSON.stringify(commentData));
-      return { success: true, comment: commentData };
+      const newComment = await prisma.interaction.create({
+        data: {
+          user_id: userId,
+          artwork_id: artworkId,
+          type: 'comment',
+          content,
+        },
+        include: {
+          User: {
+            select: {
+              username: true,
+              avatar: true,
+            }
+          }
+        }
+      });
+      return { success: true, comment: newComment };
     }
+  } catch (error) {
+    console.error(error);
+    throw createError({ statusCode: 500, message: "服务器内部错误" });
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

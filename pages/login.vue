@@ -12,36 +12,41 @@
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-8">
-        <div class="space-y-2 group">
-          <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase group-focus-within:text-cinnabar transition-colors">用户名 / Mingz</label>
-          <input 
-            v-model="form.username" 
-            type="text" 
-            required
-            class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-cinnabar focus:bg-white transition-all font-serif"
-            placeholder="请输入您的名号"
-          />
-        </div>
+        <fieldset :disabled="isLoggingIn" class="space-y-8 group">
+          <div class="space-y-2 group">
+            <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase group-focus-within:text-cinnabar transition-colors">用户名 / Mingz</label>
+            <input
+              v-model="form.username"
+              type="text"
+              required
+              class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-cinnabar focus:bg-white transition-all font-serif disabled:opacity-50"
+              placeholder="请输入您的名号"
+            />
+          </div>
 
-        <div class="space-y-2 group">
-          <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase group-focus-within:text-cinnabar transition-colors">密码 / Miemaj</label>
-          <input 
-            v-model="form.password" 
-            type="password" 
-            required
-            class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-cinnabar focus:bg-white transition-all font-serif"
-            placeholder="请输入通行密钥"
-          />
-        </div>
+          <div class="space-y-2 group">
+            <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase group-focus-within:text-cinnabar transition-colors">密码 / Miemaj</label>
+            <input
+              v-model="form.password"
+              type="password"
+              required
+              class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-cinnabar focus:bg-white transition-all font-serif disabled:opacity-50"
+              placeholder="请输入通行密钥"
+            />
+          </div>
 
-        <button 
-          type="submit" 
-          class="w-full py-4 bg-indigo text-white mt-6 hover:bg-cinnabar transition-colors duration-300 tracking-[0.3em] font-bold shadow-md flex items-center justify-center group"
-          :disabled="isLoggingIn"
-        >
-          <span v-if="isLoggingIn" class="animate-pulse">验证中...</span>
-          <span v-else class="group-hover:translate-x-1 transition-transform">确认登入 →</span>
-        </button>
+          <button
+            type="submit"
+            class="w-full py-4 bg-indigo text-white mt-6 hover:bg-cinnabar transition-colors duration-300 tracking-[0.3em] font-bold shadow-md flex items-center justify-center group disabled:bg-indigo/80"
+          >
+            <svg v-if="isLoggingIn" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span v-if="isLoggingIn">验证中...</span>
+            <span v-else class="group-hover:translate-x-1 transition-transform">确认登入 →</span>
+          </button>
+        </fieldset>
       </form>
 
       <div class="mt-10 text-center border-t border-ink/5 pt-6">
@@ -54,7 +59,6 @@
   </div>
 </template>
 
-<!-- 仅修改 script 部分 -->
 <script setup lang="ts">
 const { login } = useAuth()
 const { showToast } = useToast() 
@@ -66,12 +70,7 @@ const isLoggingIn = ref(false)
 
 const handleLogin = async () => {
   isLoggingIn.value = true
-  
-  // 这里的 setTimeout 可以去掉了，因为真实的 API 请求本身就有延迟
-  // 但保留一点点也没关系，增加质感
-
   try {
-    // 【修改】加上 await
     await login(form.username, form.password)
     
     showToast('登录成功，欢迎归来', 'success')

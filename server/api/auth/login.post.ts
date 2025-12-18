@@ -1,44 +1,64 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const { username, password } = body;
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) {
-    throw createError({ statusCode: 500, message: "Database connection missing" });
+  if (!username || !password) {
+    throw createError({ statusCode: 400, message: "用户名和密码不能为空" });
   }
-
-  const redis = new Redis(connectionString);
 
   try {
     // 1. 查找用户
-    const userKey = `user:${username}`;
-    const dataString = await redis.get(userKey);
+    const user = await prisma.user.findUnique({
+      where: { username },
+    });
 
-    if (!dataString) {
+    if (!user) {
       throw createError({ statusCode: 401, message: "用户不存在 (Boux mbouj miz)" });
     }
 
-    const userData = JSON.parse(dataString);
-
     // 2. 比对密码
-    if (userData.password !== password) {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       throw createError({ statusCode: 401, message: "密码错误 (Miemaj mbouj doengz)" });
     }
 
-    // 3. 登录成功，返回用户信息（不含密码）
+    // 3. 登录成功，更新最后登录时间
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { last_sign_in: new Date() },
+    });
+    
+    // 4. 登录成功，返回用户信息（不含密码）
     return {
       success: true,
       user: {
-        id: userData.id,
-        username: userData.username,
-        createdAt: userData.createdAt
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        points: user.points,
+        balance: user.balance,
+        created_at: user.created_at,
+        last_sign_in: user.last_sign_in,
+        avatar: user.avatar,
+        bio: user.bio,
+        role: user.role,
       }
     };
 
+  } catch (error) {
+    // @ts-ignore
+    if (error.statusCode === 401 || error.statusCode === 400) {
+      throw error;
+    }
+    console.error(error);
+    throw createError({ statusCode: 500, message: "服务器内部错误" });
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

@@ -1,14 +1,30 @@
-// server/api/generate-share.post.ts
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const { imageUrl, title, interpretation } = body;
 
-  // 智谱AI的配置
-  const API_KEY = "c98ce322385f41068bb3a5232c48109d.6jJVHqbVGtLi3lZP"; 
-  const API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+  if (!imageUrl) {
+    throw createError({ statusCode: 400, message: "Missing imageUrl" });
+  }
+
+  const { dashscopeApiKey } = useRuntimeConfig();
+  const API_KEY = dashscopeApiKey || "sk-94a41c1fbab646b7ad96f61f726a2385";
+  const API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
   try {
+    console.log('🤖 Preparing image for Ali DashScope AI...');
+    
+    let base64Content = imageUrl;
+    
+    if (!imageUrl.startsWith('data:image')) {
+      console.log('📥 Downloading image for Base64 conversion...');
+      const imageBuffer = await $fetch(imageUrl, { responseType: 'arrayBuffer' });
+      const base64Image = Buffer.from(imageBuffer as ArrayBuffer).toString('base64');
+      base64Content = `data:image/jpeg;base64,${base64Image}`;
+      console.log('✅ Image converted to Base64');
+    }
+
+    console.log('🚀 Calling AI API...');
     const response = await $fetch(API_URL, {
       method: "POST",
       headers: {
@@ -16,7 +32,7 @@ export default defineEventHandler(async (event) => {
         "Authorization": `Bearer ${API_KEY}`
       },
       body: {
-        model: "glm-4.5v", // 使用视觉模型
+        model: "qwen3-vl-30b-a3b-instruct",
         messages: [
           {
             role: "user",
@@ -39,7 +55,7 @@ export default defineEventHandler(async (event) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: imageUrl
+                  url: base64Content
                 }
               }
             ]
@@ -47,7 +63,8 @@ export default defineEventHandler(async (event) => {
         ],
         temperature: 0.8,
         top_p: 0.7,
-        max_tokens: 1024
+        max_tokens: 1024,
+        stream: false
       }
     });
 
@@ -55,11 +72,12 @@ export default defineEventHandler(async (event) => {
     const content = response.choices[0].message.content;
     return { content };
 
-  } catch (error) {
-    console.error("AI generation failed:", error);
+  } catch (error: any) {
+    console.error("AI generation failed:", error.data || error);
     throw createError({
-      statusCode: 500,
-      statusMessage: "Failed to generate copywriting."
+      statusCode: error.statusCode || 500,
+      statusMessage: "Failed to generate copywriting.",
+      message: error.data?.error?.message || error.message
     });
   }
 });

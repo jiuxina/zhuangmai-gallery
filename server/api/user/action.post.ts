@@ -1,35 +1,44 @@
 
-import Redis from 'ioredis';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { username, action } = body; // action: 'signin' | 'chat' | 'share'
+  const { userId, action } = body; // action: 'signin' | 'chat' | 'share'
 
-  const connectionString = process.env.KV_URL || process.env.REDIS_URL;
-  if (!connectionString) throw createError({ statusCode: 500, message: "DB Error" });
-  const redis = new Redis(connectionString);
+  if (!userId) {
+    throw createError({ statusCode: 400, message: "用户ID不能为空" });
+  }
 
   try {
-    const userKey = `user:${username}`;
-    const userDataStr = await redis.get(userKey);
-    if (!userDataStr) throw createError({ statusCode: 404, message: "User not found" });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
-    let user = JSON.parse(userDataStr);
+    if (!user) {
+      throw createError({ statusCode: 404, message: "User not found" });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    // 初始化字段
-    if (!user.points) user.points = 0;
-    if (!user.lastSignIn) user.lastSignIn = '';
-    
-    const today = new Date().toISOString().split('T')[0];
     let pointsAdded = 0;
     let message = '';
 
     // --- 逻辑处理 ---
     if (action === 'signin') {
-      if (user.lastSignIn === today) {
-        return { success: false, message: '今日已签到 (Gijneix yaek)' };
+      if (user.last_sign_in) {
+        const lastSignIn = new Date(user.last_sign_in);
+        lastSignIn.setHours(0, 0, 0, 0);
+        if (lastSignIn.getTime() === today.getTime()) {
+          return { success: false, message: '今日已签到 (Gijneix yaek)' };
+        }
       }
-      user.lastSignIn = today;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { last_sign_in: new Date() },
+      });
       pointsAdded = 10;
       message = '签到成功 +10 贡献值';
     } 
@@ -44,19 +53,26 @@ export default defineEventHandler(async (event) => {
     }
 
     // 更新积分
-    user.points += pointsAdded;
-    
-    // 保存回 Redis
-    await redis.set(userKey, JSON.stringify(user));
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { points: { increment: pointsAdded } },
+    });
 
     return { 
       success: true, 
-      points: user.points, 
+      points: updatedUser.points, 
       added: pointsAdded,
       message 
     };
 
+  } catch (error) {
+    // @ts-ignore
+    if (error.statusCode === 404) {
+      throw error;
+    }
+    console.error(error);
+    throw createError({ statusCode: 500, message: "服务器内部错误" });
   } finally {
-    redis.quit();
+    await prisma.$disconnect();
   }
 });

@@ -12,42 +12,46 @@
       </div>
 
       <form @submit.prevent="handleRegister" class="space-y-6">
-        <div class="space-y-2">
-          <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">拟定名号 / Mingz</label>
-          <input v-model="form.username" type="text" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="请设置用户名" />
-        </div>
+        <fieldset :disabled="isSubmitting" class="space-y-6">
+          <div class="space-y-2">
+            <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">拟定名号 / Mingz</label>
+            <input v-model="form.username" type="text" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif disabled:opacity-50" placeholder="请设置用户名" />
+          </div>
 
-        <div class="space-y-2">
-          <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">设置密钥 / Miemaj</label>
-          <input v-model="form.password" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="请设置密码" />
-        </div>
+          <div class="space-y-2">
+            <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">设置密钥 / Miemaj</label>
+            <input v-model="form.password" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif disabled:opacity-50" placeholder="请设置密码" />
+          </div>
 
-        <div class="space-y-2">
-          <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">确认密钥 / Naenx</label>
-          <input v-model="form.confirmPass" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif" placeholder="再次输入密码" />
-        </div>
+          <div class="space-y-2">
+            <label class="text-xs text-ink/50 tracking-widest block font-bold uppercase">确认密钥 / Naenx</label>
+            <input v-model="form.confirmPass" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif disabled:opacity-50" placeholder="再次输入密码" />
+          </div>
 
-        <!-- 【新增】用户协议勾选 -->
-        <div class="flex items-center gap-2 pt-2">
-          <input 
-            id="agreement" 
-            type="checkbox" 
-            v-model="form.agreed"
-            class="w-4 h-4 accent-cinnabar cursor-pointer"
-          />
-          <label for="agreement" class="text-xs text-ink/60 select-none cursor-pointer">
-            我已阅读并同意 <span class="text-indigo underline">《壮脉智承用户服务协议》</span>
-          </label>
-        </div>
+          <div class="flex items-center gap-2 pt-2">
+            <input
+              id="agreement"
+              type="checkbox"
+              v-model="form.agreed"
+              class="w-4 h-4 accent-cinnabar cursor-pointer"
+            />
+            <label for="agreement" class="text-xs text-ink/60 select-none cursor-pointer">
+              我已阅读并同意 <span class="text-indigo underline">《壮脉智承用户服务协议》</span>
+            </label>
+          </div>
 
-        <button 
-          type="submit" 
-          class="w-full py-4 border-2 border-indigo text-indigo mt-4 hover:bg-indigo hover:text-white transition-all duration-300 tracking-[0.3em] font-bold shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="isSubmitting"
-        >
-           <span v-if="isSubmitting" class="animate-pulse">镌刻中...</span>
-           <span v-else>提交注册</span>
-        </button>
+          <button
+            type="submit"
+            class="w-full py-4 border-2 border-indigo text-indigo mt-4 hover:bg-indigo hover:text-white transition-all duration-300 tracking-[0.3em] font-bold shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span v-if="isSubmitting">镌刻中...</span>
+            <span v-else>提交注册</span>
+          </button>
+        </fieldset>
       </form>
 
       <div class="mt-10 text-center border-t border-ink/5 pt-6">

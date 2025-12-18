@@ -60,7 +60,7 @@
                <span>{{ artwork.unique_hash || 'PENDING-CHAIN-SYNC' }}</span>
              </div>
              <!-- 点赞按钮 -->
-             <button @click="toggleLike" class="flex items-center space-x-2 group px-2 py-1 hover:bg-white rounded transition-colors">
+             <button @click="toggleLike" class="flex items-center space-x-2 group px-2 py-1 hover:bg-white rounded transition-colors" :disabled="isLikeSubmitting">
                 <span class="text-xl transition-transform group-active:scale-125" :class="interactData.liked ? 'text-cinnabar' : 'text-ink/20'">♥</span>
                 <span class="text-xs font-mono text-ink/60">{{ interactData.likes }}</span>
              </button>
@@ -94,8 +94,11 @@
                 <button 
                   @click="handleAnalyzePattern" 
                   class="text-xs text-cinnabar border border-cinnabar/30 px-2 py-1 hover:bg-cinnabar hover:text-white transition-colors flex items-center gap-1"
+                  :disabled="isAnalyzingPattern"
                 >
-                  <span>◎</span> 纹样解构
+                  <span v-if="isAnalyzingPattern" class="animate-spin text-xs">◎</span>
+                  <span v-else>◎</span>
+                  纹样解构
                 </button>
               </div>
               <div class="text-ink/90 leading-relaxed font-serif text-sm md:text-base whitespace-pre-wrap markdown-body">
@@ -225,14 +228,16 @@
               class="w-full bg-white border border-ink/10 p-3 text-sm focus:border-indigo focus:outline-none rounded-sm transition-colors" 
               rows="2" 
               placeholder="写下你的文化感悟..."
+              :disabled="isCommentSubmitting"
             ></textarea>
             <div class="text-right mt-2">
               <button 
                 @click="postComment" 
-                :disabled="!commentText" 
+                :disabled="!commentText || isCommentSubmitting"
                 class="bg-indigo text-white text-xs px-4 py-2 rounded-sm hover:bg-cinnabar transition-colors disabled:opacity-50"
               >
-                发表评论
+                <span v-if="isCommentSubmitting" class="animate-pulse">发表中...</span>
+                <span v-else>发表评论</span>
               </button>
             </div>
           </div>
@@ -242,12 +247,12 @@
         <div class="space-y-6">
           <div v-for="(comment, idx) in interactData.comments" :key="idx" class="flex gap-4 pb-6 border-b border-ink/5 last:border-0">
             <div class="w-8 h-8 bg-paper border border-ink/10 rounded-full flex items-center justify-center text-xs shrink-0 text-ink/60">
-              {{ comment.username?.[0] }}
+              {{ comment.User.username?.[0] }}
             </div>
             <div>
               <div class="flex items-baseline gap-2 mb-1">
-                <span class="text-sm font-bold text-ink">{{ comment.username }}</span>
-                <span class="text-[10px] text-ink/30">{{ new Date(comment.date).toLocaleDateString() }}</span>
+                <span class="text-sm font-bold text-ink">{{ comment.User.username }}</span>
+                <span class="text-[10px] text-ink/30">{{ new Date(comment.created_at).toLocaleDateString() }}</span>
               </div>
               <p class="text-sm text-ink/70 leading-relaxed font-serif">{{ comment.content }}</p>
             </div>
@@ -353,10 +358,12 @@
                   </div>
                 </div>
                 <form v-else @submit.prevent="handlePay" class="space-y-4">
-                  <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">姓名 / Name</label><input required v-model="orderForm.name" type="text" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none" placeholder="请输入收货人姓名" /></div>
-                  <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">电话 / Phone</label><input required v-model="orderForm.phone" type="tel" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none" placeholder="请输入联系方式" /></div>
-                  <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">地址 / Address</label><textarea required v-model="orderForm.address" rows="3" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none" placeholder="请输入详细收货地址"></textarea></div>
-                  <div class="pt-2"><button type="submit" class="w-full py-3 bg-cinnabar text-white rounded hover:bg-red-700 transition-all shadow-md font-bold tracking-widest flex items-center justify-center"><span v-if="isPaying" class="animate-pulse">支付处理中...</span><span v-else>立即支付 ¥59.00</span></button></div>
+                  <fieldset :disabled="isPaying" class="space-y-4">
+                    <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">姓名 / Name</label><input required v-model="orderForm.name" type="text" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none disabled:opacity-50" placeholder="请输入收货人姓名" /></div>
+                    <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">电话 / Phone</label><input required v-model="orderForm.phone" type="tel" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none disabled:opacity-50" placeholder="请输入联系方式" /></div>
+                    <div class="space-y-1"><label class="text-xs font-bold text-ink/50 uppercase tracking-wider">地址 / Address</label><textarea required v-model="orderForm.address" rows="3" class="w-full bg-white border border-ink/10 p-2 text-sm focus:border-cinnabar focus:outline-none disabled:opacity-50" placeholder="请输入详细收货地址"></textarea></div>
+                    <div class="pt-2"><button type="submit" class="w-full py-3 bg-cinnabar text-white rounded hover:bg-red-700 transition-all shadow-md font-bold tracking-widest flex items-center justify-center disabled:bg-cinnabar/70"><svg v-if="isPaying" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span v-if="isPaying">支付处理中...</span><span v-else>立即支付 ¥59.00</span></button></div>
+                  </fieldset>
                 </form>
               </div>
             </div>
@@ -450,20 +457,20 @@ const handlePay = async () => {
   
   try {
     const orderData = {
-      ...orderForm,
-      user_theme: artwork.value.user_theme,
-      art_image_url: artwork.value.art_image_url,
-      mockup_url: artwork.value.mockup_url,
-      price: 59.00
+      type: 'physical',
+      price: 59.00,
+      artworkId: artwork.value.id,
+      shippingAddress: orderForm.address,
+      shippingName: orderForm.name,
+      shippingPhone: orderForm.phone,
     }
     await $fetch('/api/user/orders', {
       method: 'POST',
-      body: { username: currentUser.value.username, orderData }
+      body: { userId: currentUser.value.id, orderData }
     })
-    // 成功！
     orderStep.value = 'success'
   } catch (e) {
-    showToast('支付失败，请重试', 'error')
+    showToast('支付失败，请检查网络或联系客服', 'error')
   } finally {
     isPaying.value = false
   }
@@ -477,39 +484,88 @@ const closeSuccessModal = () => {
 // 互动逻辑
 const interactData = reactive({ likes: 0, liked: false, comments: [] as any[] })
 const commentText = ref('')
+const isLikeSubmitting = ref(false)
+const isCommentSubmitting = ref(false)
 
 const fetchInteraction = async () => {
   if (!artwork.value) return
-  const data: any = await $fetch('/api/artwork/interact', {
-    params: { id: artwork.value.id, username: currentUser.value?.username }
-  })
-  interactData.likes = data.likes
-  interactData.liked = data.liked
-  interactData.comments = data.comments
+  try {
+    const data: any = await $fetch('/api/artwork/interact', {
+      params: { id: artwork.value.id, userId: currentUser.value?.id }
+    })
+    interactData.likes = data.likes
+    interactData.liked = data.liked
+    interactData.comments = data.comments
+  } catch (e) {
+    showToast('获取互动数据失败', 'error')
+  }
 }
 
 const toggleLike = async () => {
   if (!currentUser.value) { showToast('请先登录', 'error'); return }
-  interactData.liked = !interactData.liked
-  interactData.likes += interactData.liked ? 1 : -1
-  await $fetch('/api/artwork/interact', {
-    method: 'POST',
-    body: { type: 'like', artworkId: artwork.value.id, username: currentUser.value.username }
-  })
+  if (isLikeSubmitting.value) return
+
+  isLikeSubmitting.value = true
+  const originalLiked = interactData.liked
+  const originalLikes = interactData.likes
+
+  interactData.liked = !originalLiked
+  interactData.likes += originalLiked ? -1 : 1
+
+  try {
+    await $fetch('/api/artwork/interact', {
+      method: 'POST',
+      body: { type: 'like', artworkId: artwork.value.id, userId: currentUser.value.id }
+    })
+  } catch (e) {
+    // Revert on error
+    interactData.liked = originalLiked
+    interactData.likes = originalLikes
+    showToast('操作失败，请重试', 'error')
+  } finally {
+    isLikeSubmitting.value = false
+  }
 }
 
 const postComment = async () => {
   if (!currentUser.value) { showToast('请先登录', 'error'); return }
-  const res: any = await $fetch('/api/artwork/interact', {
-    method: 'POST',
-    body: { type: 'comment', artworkId: artwork.value.id, username: currentUser.value.username, content: commentText.value }
-  })
-  if (res.success) {
-    interactData.comments.unshift(res.comment)
+  if (isCommentSubmitting.value) return
+
+  isCommentSubmitting.value = true
+  const tempComment = {
+    id: Date.now(),
+    content: commentText.value,
+    created_at: new Date().toISOString(),
+    User: { username: currentUser.value.username }
+  }
+
+  try {
+    // Optimistic UI update
+    interactData.comments.unshift(tempComment)
+    const originalCommentText = commentText.value
     commentText.value = ''
+
+    const res: any = await $fetch('/api/artwork/interact', {
+      method: 'POST',
+      body: { type: 'comment', artworkId: artwork.value.id, userId: currentUser.value.id, content: originalCommentText }
+    })
+
+    // Replace temp comment with real one from server
+    const index = interactData.comments.findIndex(c => c.id === tempComment.id)
+    if (index !== -1) {
+      interactData.comments[index] = res.comment
+    }
     showToast('评论发表成功', 'success')
+
+  } catch (e) {
+    // Revert on error
+    interactData.comments.shift()
+    showToast('评论失败，请重试', 'error')
+  } finally {
+    isCommentSubmitting.value = false
   }
 }
+
 
 // 分享逻辑 (+积分)
 const handleShare = async () => {
@@ -518,20 +574,26 @@ const handleShare = async () => {
     try {
       await $fetch('/api/user/action', {
         method: 'POST',
-        body: { username: currentUser.value.username, action: 'share' }
+        body: { userId: currentUser.value.id, action: 'share' }
       })
-    } catch (e) {}
+    } catch (e) {
+      // Non-critical, maybe log this
+      console.error("Failed to record share action:", e)
+    }
   }
 }
 
 // 纹样分析逻辑
 const isAnalyzingPattern = ref(false)
 const patternData = ref<any>(null)
+const patternError = ref(false)
 
 const handleAnalyzePattern = async () => {
   showPatternModal.value = true
   if (patternData.value) return
+
   isAnalyzingPattern.value = true
+  patternError.value = false
   try {
     const data = await $fetch('/api/analyze-pattern', {
       method: 'POST',
@@ -539,8 +601,8 @@ const handleAnalyzePattern = async () => {
     })
     patternData.value = data
   } catch (err) {
-    showToast('纹样分析失败', 'error')
-    showPatternModal.value = false
+    patternError.value = true
+    showToast('纹样分析服务暂时不可用', 'error')
   } finally {
     isAnalyzingPattern.value = false
   }
@@ -559,15 +621,15 @@ const optimizeDetailImage = (url: string) => {
 
 // 数据获取
 const { data: artwork, pending, error } = await useAsyncData(`artwork-${route.params.id}`, async () => {
-  const response: any = await $fetch('https://api.zhuangmai.cloud/api/gallery/list')
-  const list = Array.isArray(response) ? response : (response?.data || [])
-  const found = list.find((item: any) => String(item.id) === String(route.params.id))
-  if (!found) throw createError({ statusCode: 404, statusMessage: 'Artwork not found' })
-  return found
+  try {
+    return await $fetch(`/api/artwork/${route.params.id}`)
+  } catch (e) {
+    throw createError({ statusCode: 404, statusMessage: 'Artwork not found' })
+  }
 }, { lazy: true })
 
 const { data: allList } = await useAsyncData('gallery-list-cache', () => 
-  $fetch('https://api.zhuangmai.cloud/api/gallery/list'), { lazy: true }
+  $fetch('/api/gallery/list'), { lazy: true }
 )
 
 const recommendedArtworks = computed(() => {

@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model CardTemplate {
+  id                Int           @id @default(autoincrement())
+  collection_set_id Int
+  rarity            String        @db.VarChar(20)
+  name              String        @db.VarChar(255)
+  imageUrl          String        @db.Text
+  totalSupply       Int           @default(100)
+  remaining         Int           @default(100)
+  probability       Float
+  CollectionSet     CollectionSet @relation(fields: [collection_set_id], references: [id])
+  UserCard          UserCard[]
+
+  @@index([collection_set_id])
+}
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  message    String   @db.Text
+  response   String?  @db.Text
+  created_at DateTime @default(now())
+  User       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+model CollectionReward {
+  id                Int           @id @default(autoincrement())
+  user_id           Int
+  collection_set_id Int
+  created_at        DateTime      @default(now())
+  CollectionSet     CollectionSet @relation(fields: [collection_set_id], references: [id])
+  User              User          @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, collection_set_id])
+  @@index([collection_set_id], map: "CollectionReward_collection_set_id_fkey")
+  @@index([user_id])
+}
+
+model CollectionSet {
+  id               Int                @id @default(autoincrement())
+  title            String             @db.VarChar(255)
+  description      String?            @db.Text
+  coverUrl         String             @db.Text
+  publisher_id     Int
+  status           String             @default("active")
+  created_at       DateTime           @default(now())
+  totalRevenue     Int                @default(0)
+  CardTemplate     CardTemplate[]
+  CollectionReward CollectionReward[]
+  User             User               @relation(fields: [publisher_id], references: [id])
+
+  @@index([publisher_id])
+}
+
+model Interaction {
+  id                Int               @id @default(autoincrement())
+  user_id           Int
+  artwork_id        Int
+  type              String            @db.VarChar(50)
+  created_at        DateTime          @default(now())
+  content           String?           @db.Text
+  community_gallery community_gallery @relation(fields: [artwork_id], references: [id])
+  User              User              @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, artwork_id, type])
+  @@index([artwork_id])
+  @@index([user_id])
+}
+
+model Order {
+  id                Int                @id @default(autoincrement())
+  type              String             @db.VarChar(50)
+  price             Float
+  status            String             @db.VarChar(50)
+  artwork_id        Int?
+  created_at        DateTime           @default(now())
+  shipping_address  String?            @db.Text
+  shipping_name     String?            @db.VarChar(255)
+  shipping_phone    String?            @db.VarChar(50)
+  user_id           Int
+  community_gallery community_gallery? @relation(fields: [artwork_id], references: [id])
+  User              User               @relation(fields: [user_id], references: [id])
+
+  @@index([artwork_id])
+  @@index([user_id])
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String   @db.Text
+  expiresAt DateTime
+  user_id   Int?
+  User      User?    @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique
+  password          String              @db.VarChar(255)
+  email             String?             @unique
+  points            Int                 @default(0)
+  balance           Float               @default(0)
+  created_at        DateTime            @default(now())
+  last_sign_in      DateTime?
+  avatar            String?             @db.Text
+  bio               String?             @db.Text
+  role              User_role           @default(USER)
+  ChatMessage       ChatMessage[]
+  CollectionReward  CollectionReward[]
+  CollectionSet     CollectionSet[]
+  Interaction       Interaction[]
+  Order             Order[]
+  Session           Session[]
+  UserCard          UserCard[]
+  community_gallery community_gallery[]
+}
+
+model UserCard {
+  id           Int          @id @default(autoincrement())
+  template_id  Int
+  owner_id     Int
+  cardNumber   Int
+  isLocked     Boolean      @default(true)
+  unlockDate   DateTime
+  created_at   DateTime     @default(now())
+  User         User         @relation(fields: [owner_id], references: [id])
+  CardTemplate CardTemplate @relation(fields: [template_id], references: [id])
+
+  @@index([owner_id])
+  @@index([template_id])
+}
+
+model community_gallery {
+  id                  Int           @id @default(autoincrement())
+  unique_hash         String?       @db.VarChar(64)
+  user_name           String?       @db.VarChar(255)
+  user_theme          String?       @db.VarChar(255)
+  art_image_url       String        @db.Text
+  certificate_url     String?       @db.Text
+  ai_interpretation   String?       @db.Text
+  created_at          DateTime?     @default(now()) @db.Timestamp(0)
+  fortune_text        String?       @db.Text
+  audio_url           String?       @db.Text
+  mockup_url          String?       @db.Text
+  original_owner_name String?       @db.VarChar(255)
+  price               Float?
+  split_ratio         Int?
+  status              String?       @default("owned") @db.VarChar(50)
+  updatedAt           DateTime?
+  owner_id            Int?
+  views               Int?          @default(0)
+  Interaction         Interaction[]
+  Order               Order[]
+  User                User?         @relation(fields: [owner_id], references: [id])
+
+  @@index([owner_id])
+}
+
+model zhuangmai_knowledge {
+  id         Int     @id @default(autoincrement())
+  category   String? @db.VarChar(50)
+  topic      String? @unique(map: "topic") @db.VarChar(100)
+  name       String? @db.VarChar(100)
+  short_desc String? @db.Text
+  long_desc  String? @db.Text
+  image_url  String? @db.Text
+  source     String? @db.Text
+}
+
+enum User_role {
+  USER
+  ADMIN
+}

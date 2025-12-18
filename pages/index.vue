@@ -68,7 +68,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useToast } from '~/composables/useToast'
 
+const { showToast } = useToast()
 const imageLoaded = ref(false)
 const { data: bing } = await useFetch('/api/bing', { lazy: true, server: false })
 const optimizedBingUrl = computed(() => {
@@ -80,15 +82,19 @@ const optimizedBingUrl = computed(() => {
 // 音频逻辑
 const ambientRef = ref<HTMLAudioElement | null>(null)
 const isAmbientPlaying = ref(false)
-const toggleAmbient = () => {
+const toggleAmbient = async () => {
   if (!ambientRef.value) return
   if (isAmbientPlaying.value) {
     ambientRef.value.pause()
     isAmbientPlaying.value = false
   } else {
-    ambientRef.value.volume = 0.3 // 低音量白噪音
-    ambientRef.value.play().catch(() => alert('请先与页面交互'))
-    isAmbientPlaying.value = true
+    try {
+      ambientRef.value.volume = 0.3 // 低音量白噪音
+      await ambientRef.value.play()
+      isAmbientPlaying.value = true
+    } catch (error) {
+      showToast('音频自动播放失败，请点击按钮重试', 'info')
+    }
   }
 }
 </script>
