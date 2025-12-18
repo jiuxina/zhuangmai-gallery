@@ -37,7 +37,7 @@
               </div>
               <div class="flex items-baseline gap-1">
                  <span class="text-xl font-bold text-gold">{{ copyrightEarnings }}</span>
-                 <span class="text-xs text-ink/50">pts</span>
+                 <span class="text-xs text-ink/50">共创贡献值</span>
               </div>
               <p class="text-[10px] text-ink/40 mt-1">来自他人抽卡的分成收益</p>
             </div>
@@ -86,7 +86,7 @@
               </div>
               <h4 class="font-bold text-sm text-ink font-serif truncate">{{ artwork.user_theme || '无题' }}</h4>
               <button v-if="artwork.status === 'OWNED'" @click="handleSubmit(artwork)" class="mt-3 w-full py-2 bg-paper border border-indigo/20 text-indigo text-xs hover:bg-indigo hover:text-white transition-colors">申请收录 (赚取收益)</button>
-              <div v-else class="mt-3 text-center text-[10px] text-ink/30 py-2 bg-paper">{{ artwork.status === 'ACCEPTED' ? '该作品正在为您赚取积分' : '等待管理员审核' }}</div>
+              <div v-else class="mt-3 text-center text-[10px] text-ink/30 py-2 bg-paper">{{ artwork.status === 'ACCEPTED' ? '该作品正在为您赚取共创贡献值' : '等待管理员审核' }}</div>
             </div>
             <NuxtLink to="/chat" class="border-2 border-dashed border-ink/10 flex flex-col items-center justify-center text-ink/30 hover:text-cinnabar hover:border-cinnabar/30 transition-all min-h-[280px] bg-paper/50 rounded-sm"><span class="text-2xl mb-2 font-serif">+</span><span class="text-xs tracking-widest">共创更多作品</span></NuxtLink>
           </div>
@@ -187,7 +187,7 @@
         <div class="absolute inset-0 bg-ink/80 backdrop-blur-sm" @click="showLogModal = false"></div>
         <div class="bg-paper w-full max-w-md rounded-lg shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[80vh] animate-enter-fast border-t-4 border-indigo">
           <div class="p-6 border-b border-ink/10 flex justify-between items-center bg-white">
-            <h3 class="font-calligraphy text-2xl text-indigo">积分变动记录</h3>
+            <h3 class="font-calligraphy text-2xl text-indigo">共创贡献值变动记录</h3>
             <button @click="showLogModal = false" class="text-2xl text-ink/30 hover:text-cinnabar">×</button>
           </div>
           <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-fabric-texture">
