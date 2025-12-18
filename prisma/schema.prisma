@@ -13,13 +13,17 @@ model CardTemplate {
   rarity            String        @db.VarChar(20)
   name              String        @db.VarChar(255)
   imageUrl          String        @db.Text
-  totalSupply       Int           @default(100)
-  remaining         Int           @default(100)
+  totalSupply       Int
+  remaining         Int
   probability       Float
+  originalAuthorId  Int?
+  shareRatio        Float         @default(0)
   CollectionSet     CollectionSet @relation(fields: [collection_set_id], references: [id])
+  User              User?         @relation(fields: [originalAuthorId], references: [id])
   UserCard          UserCard[]
 
   @@index([collection_set_id])
+  @@index([originalAuthorId])
 }
 
 model ChatMessage {
@@ -50,11 +54,10 @@ model CollectionSet {
   id               Int                @id @default(autoincrement())
   title            String             @db.VarChar(255)
   description      String?            @db.Text
-  coverUrl         String             @db.Text
+  coverUrl         String?            @db.Text
   publisher_id     Int
   status           String             @default("active")
   created_at       DateTime           @default(now())
-  totalRevenue     Int                @default(0)
   CardTemplate     CardTemplate[]
   CollectionReward CollectionReward[]
   User             User               @relation(fields: [publisher_id], references: [id])
@@ -111,13 +114,13 @@ model User {
   username          String              @unique
   password          String              @db.VarChar(255)
   email             String?             @unique
-  points            Int                 @default(0)
-  balance           Float               @default(0)
+  points            Int                 @default(1000)
   created_at        DateTime            @default(now())
   last_sign_in      DateTime?
   avatar            String?             @db.Text
   bio               String?             @db.Text
   role              User_role           @default(USER)
+  CardTemplate      CardTemplate[]
   ChatMessage       ChatMessage[]
   CollectionReward  CollectionReward[]
   CollectionSet     CollectionSet[]
@@ -133,8 +136,6 @@ model UserCard {
   template_id  Int
   owner_id     Int
   cardNumber   Int
-  isLocked     Boolean      @default(true)
-  unlockDate   DateTime
   created_at   DateTime     @default(now())
   User         User         @relation(fields: [owner_id], references: [id])
   CardTemplate CardTemplate @relation(fields: [template_id], references: [id])
@@ -144,27 +145,27 @@ model UserCard {
 }
 
 model community_gallery {
-  id                  Int           @id @default(autoincrement())
-  unique_hash         String?       @db.VarChar(64)
-  user_name           String?       @db.VarChar(255)
-  user_theme          String?       @db.VarChar(255)
-  art_image_url       String        @db.Text
-  certificate_url     String?       @db.Text
-  ai_interpretation   String?       @db.Text
-  created_at          DateTime?     @default(now()) @db.Timestamp(0)
-  fortune_text        String?       @db.Text
-  audio_url           String?       @db.Text
-  mockup_url          String?       @db.Text
-  original_owner_name String?       @db.VarChar(255)
+  id                  Int                      @id @default(autoincrement())
+  unique_hash         String?                  @db.VarChar(64)
+  user_name           String?                  @db.VarChar(255)
+  user_theme          String?                  @db.VarChar(255)
+  art_image_url       String                   @db.Text
+  certificate_url     String?                  @db.Text
+  ai_interpretation   String?                  @db.Text
+  created_at          DateTime                 @default(now())
+  fortune_text        String?                  @db.Text
+  audio_url           String?                  @db.Text
+  mockup_url          String?                  @db.Text
+  original_owner_name String?                  @db.VarChar(255)
   price               Float?
   split_ratio         Int?
-  status              String?       @default("owned") @db.VarChar(50)
+  status              community_gallery_status @default(OWNED)
   updatedAt           DateTime?
-  owner_id            Int?
-  views               Int?          @default(0)
+  owner_id            Int
+  views               Int?                     @default(0)
   Interaction         Interaction[]
   Order               Order[]
-  User                User?         @relation(fields: [owner_id], references: [id])
+  User                User                     @relation(fields: [owner_id], references: [id])
 
   @@index([owner_id])
 }
@@ -183,4 +184,11 @@ model zhuangmai_knowledge {
 enum User_role {
   USER
   ADMIN
+}
+
+enum community_gallery_status {
+  OWNED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
 }
