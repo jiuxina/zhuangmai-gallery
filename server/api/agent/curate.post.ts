@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
       body: {
-        model: "qwen-plus",
+        model: "qwen3-vl-30b-a3b-instruct",
         messages: [
           {
             role: "system",
