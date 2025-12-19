@@ -95,7 +95,7 @@
             <p class="text-xs text-ink/50 leading-relaxed mb-6 line-clamp-2 h-10">{{ pool.description }}</p>
             <div class="mt-auto flex items-center justify-between border-t border-ink/5 pt-4">
               <div class="text-xs text-ink/40 font-mono"><span class="block">包含卡面</span><span class="text-lg font-bold text-indigo">{{ pool._count.CardTemplate }}</span> 张</div>
-              <div class="text-right"><div class="text-xs text-ink/40 mb-1">单抽仅需</div><div class="text-lg font-bold text-cinnabar font-mono">{{ pool.pricePerDraw }} pts</div></div>
+              <div class="text-right"><div class="text-xs text-ink/40 mb-1">单抽仅需</div><div class="text-lg font-bold text-cinnabar font-mono">{{ pool.pricePerDraw }} 共创值</div></div>
             </div>
             <NuxtLink :to="`/market/${pool.id}`" class="mt-4 w-full py-3 bg-indigo text-white text-center text-sm font-bold tracking-[0.2em] hover:bg-cinnabar transition-colors">立即前往</NuxtLink>
           </div>
@@ -112,8 +112,8 @@
           <h3 class="font-calligraphy text-3xl text-indigo mb-2">积分充值</h3>
           <p class="text-xs text-ink/40 mb-8 tracking-widest uppercase">Demo Recharge</p>
           <div class="grid grid-cols-2 gap-4 mb-6">
-            <button @click="handleRecharge(6480)" class="p-4 border border-ink/10 hover:border-gold hover:bg-gold/5 transition-all rounded-sm group"><div class="text-2xl mb-1">💎</div><div class="font-bold text-indigo group-hover:text-gold">6480 pts</div></button>
-            <button @click="handleRecharge(12800)" class="p-4 border border-ink/10 hover:border-gold hover:bg-gold/5 transition-all rounded-sm group"><div class="text-2xl mb-1">👑</div><div class="font-bold text-indigo group-hover:text-gold">12800 pts</div></button>
+            <button @click="handleRecharge(6480)" class="p-4 border border-ink/10 hover:border-gold hover:bg-gold/5 transition-all rounded-sm group"><div class="text-2xl mb-1">💎</div><div class="font-bold text-indigo group-hover:text-gold">6480 共创值</div></button>
+            <button @click="handleRecharge(12800)" class="p-4 border border-ink/10 hover:border-gold hover:bg-gold/5 transition-all rounded-sm group"><div class="text-2xl mb-1">👑</div><div class="font-bold text-indigo group-hover:text-gold">12800 共创值</div></button>
           </div>
           <button @click="showRecharge = false" class="text-xs text-ink/40 hover:text-ink underline">取消</button>
         </div>

@@ -73,6 +73,7 @@ model community_gallery {
   mockup_url          String?                  @db.Text
   created_at          DateTime                 @default(now())
   updatedAt           DateTime?                @updatedAt
+  appraisal_data    String?                  @db.Text
   
   owner_id            Int
   User                User                     @relation(fields: [owner_id], references: [id])

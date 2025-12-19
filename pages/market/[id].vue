@@ -15,7 +15,7 @@
         <span>← 退出集市</span>
       </button>
       <div class="bg-black/40 backdrop-blur border border-white/10 px-4 py-1 rounded-full text-xs font-mono text-gold">
-        余额: {{ currentUser?.points || 0 }} pts
+        余额: {{ currentUser?.points || 0 }} 共创值
       </div>
     </div>
 
@@ -46,12 +46,12 @@
           <div class="flex gap-6 justify-center md:justify-start">
             <button @click="startDraw(1)" class="w-32 py-4 border border-white/20 rounded-sm hover:bg-white/10 transition-colors flex flex-col items-center">
               <span class="text-sm font-bold tracking-widest">织造一次</span>
-              <span class="text-[10px] text-white/50 mt-1">{{ pool?.pricePerDraw }} pts</span>
+              <span class="text-[10px] text-white/50 mt-1">{{ pool?.pricePerDraw }} 共创值</span>
             </button>
             <button @click="startDraw(5)" class="w-40 py-4 bg-cinnabar rounded-sm shadow-[0_0_30px_rgba(188,47,46,0.6)] hover:bg-red-600 transition-all transform hover:-translate-y-1 flex flex-col items-center relative overflow-hidden group">
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               <span class="text-lg font-bold tracking-widest font-calligraphy text-gold">五连织造</span>
-              <span class="text-[10px] text-white/80 mt-1">{{ (pool?.pricePerDraw || 100) * 5 }} pts</span>
+              <span class="text-[10px] text-white/80 mt-1">{{ (pool?.pricePerDraw || 100) * 5 }} 共创值</span>
               <div class="absolute top-0 right-0 bg-gold text-black text-[9px] px-1.5 font-bold">必出R以上</div>
             </button>
           </div>

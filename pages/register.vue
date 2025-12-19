@@ -1,4 +1,3 @@
-
 <template>
   <div class="min-h-screen pt-32 px-4 flex items-center justify-center bg-fabric-texture">
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cinnabar/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -28,15 +27,19 @@
             <input v-model="form.confirmPass" type="password" required class="w-full bg-paper border-b-2 border-ink/10 py-3 px-4 text-ink focus:outline-none focus:border-indigo focus:bg-white transition-all font-serif disabled:opacity-50" placeholder="再次输入密码" />
           </div>
 
-          <div class="flex items-center gap-2 pt-2">
+          <!-- 条款勾选 -->
+          <div class="flex items-center gap-2 pt-2 group">
             <input
               id="agreement"
               type="checkbox"
               v-model="form.agreed"
               class="w-4 h-4 accent-cinnabar cursor-pointer"
             />
-            <label for="agreement" class="text-xs text-ink/60 select-none cursor-pointer">
-              我已阅读并同意 <span class="text-indigo underline">《壮脉智承用户服务协议》</span>
+            <label for="agreement" class="text-xs text-ink/60 select-none">
+              我已阅读并同意 
+              <span @click.prevent="showTerms = true" class="text-indigo underline cursor-pointer hover:text-cinnabar font-bold">
+                《用户协议与版权声明》
+              </span>
             </label>
           </div>
 
@@ -61,20 +64,42 @@
         </NuxtLink>
       </div>
     </div>
+
+    <!-- 条款弹窗组件 -->
+    <Transition name="modal">
+      <TermsModal 
+        v-if="showTerms" 
+        @close="showTerms = false" 
+        @agree="handleAgreeTerms" 
+      />
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
+import { reactive, ref } from 'vue'
+import TermsModal from '~/components/TermsModal.vue'
+import { useAuth } from '~/composables/useAuth'
+import { useToast } from '~/composables/useToast'
+
 const { register } = useAuth()
 const { showToast } = useToast()
 const router = useRouter()
 
 const form = reactive({ username: '', password: '', confirmPass: '', agreed: false })
 const isSubmitting = ref(false)
+const showTerms = ref(false)
+
+const handleAgreeTerms = () => {
+  form.agreed = true
+  showTerms.value = false
+}
 
 const handleRegister = async () => {
   if (!form.agreed) {
-    showToast('请先同意用户协议', 'error')
+    showToast('请先阅读并同意用户协议', 'error')
+    // 自动弹窗，引导用户阅读
+    showTerms.value = true
     return
   }
   if (form.password !== form.confirmPass) {
@@ -86,7 +111,7 @@ const handleRegister = async () => {
   
   try {
     await register(form.username, form.password)
-    showToast('注册成功，请登录', 'success')
+    showToast('注册成功，欢迎加入壮锦共创者之林', 'success')
     router.push('/login')
   } catch (e: any) {
     showToast(e.message, 'error')
@@ -97,3 +122,8 @@ const handleRegister = async () => {
 
 useHead({ title: '注册 - 壮脉智承' })
 </script>
+
+<style scoped>
+.modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+</style>

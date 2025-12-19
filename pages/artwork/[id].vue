@@ -48,6 +48,15 @@
               class="w-full h-auto object-cover select-none"
               @error="(e) => handleImgError(e, artwork.art_image_url)"
             />
+            
+            <!-- 模块一：Agent 电子鉴定印章 -->
+            <div v-if="appraisal" class="absolute -bottom-6 -right-6 w-28 h-28 pointer-events-none animate-seal-in z-20">
+              <div class="w-full h-full border-4 border-cinnabar/60 rounded-full flex flex-col items-center justify-center text-cinnabar/60 font-bold rotate-[-15deg] bg-white/40 backdrop-blur-[2px] border-double shadow-xl">
+                <span class="text-[10px] tracking-widest leading-none mb-1">壮脉·智承</span>
+                <span class="text-xl font-calligraphy">Agent 鉴定</span>
+                <span class="text-[9px] font-mono mt-1">LV.{{ appraisal.rarity }}</span>
+              </div>
+            </div>
           </div>
           
           <div class="mt-6 flex justify-between items-center bg-white/50 p-3 rounded-sm border border-ink/5 backdrop-blur-sm">
@@ -73,14 +82,43 @@
               <span class="font-serif italic tracking-wide">
                 Boux {{ artwork.user_name || '匿名创作者' }}
               </span>
-              <!-- 积分余额显示 -->
               <div v-if="currentUser" class="ml-auto text-xs bg-gold/10 border border-gold/20 px-3 py-1 rounded text-gold font-mono">
-                我的余额: {{ currentUser.points }} 共创贡献值
+                我的余额: {{ currentUser.points }} 共创值
               </div>
             </div>
           </div>
 
-          <!-- AI 解读 & 纹样解构 (带扣费逻辑) -->
+          <!-- 模块一：专家鉴定报告展示 -->
+          <div v-if="appraisal" class="bg-white border-l-4 border-cinnabar p-6 shadow-md animate-enter-fast opacity-0" style="animation-fill-mode: forwards; animation-delay: 0.3s">
+            <div class="flex justify-between items-start mb-6">
+              <h4 class="text-sm font-bold text-indigo flex items-center gap-2">
+                <span>⚖️</span> Agent 专家鉴定报告
+              </h4>
+              <span class="text-[10px] font-mono text-ink/30">SEAL: {{ appraisal.seal_code }}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="text-center bg-paper py-3 rounded">
+                <p class="text-[10px] text-ink/40 uppercase mb-1">文化深度</p>
+                <p class="text-xl font-mono font-bold text-cinnabar">{{ appraisal.scores.culture }}/10</p>
+              </div>
+              <div class="text-center bg-paper py-3 rounded">
+                <p class="text-[10px] text-ink/40 uppercase mb-1">构图精度</p>
+                <p class="text-xl font-mono font-bold text-cinnabar">{{ appraisal.scores.detail }}/10</p>
+              </div>
+              <div class="text-center bg-paper py-3 rounded">
+                <p class="text-[10px] text-ink/40 uppercase mb-1">色彩调和</p>
+                <p class="text-xl font-mono font-bold text-cinnabar">{{ appraisal.scores.color }}/10</p>
+              </div>
+            </div>
+            <div class="relative">
+              <span class="absolute -top-4 -left-2 text-4xl text-ink/5 font-serif">“</span>
+              <p class="text-sm text-ink/70 font-serif leading-relaxed italic pl-4">
+                {{ appraisal.comment }}
+              </p>
+            </div>
+          </div>
+
+          <!-- AI 解读 & 纹样解构 -->
           <div v-if="formattedInterpretation" class="opacity-0 animate-enter-medium relative" style="animation-delay: 0.25s">
             <div class="absolute -top-3 -left-2 text-6xl text-ink/5 font-serif">“</div>
             <div class="relative bg-white/40 p-6 border-y border-ink/10 backdrop-blur-sm">
@@ -88,7 +126,6 @@
                 <h3 class="font-bold text-indigo flex items-center text-sm tracking-widest uppercase">
                   <span class="mr-2">🔮</span> AI GAII
                 </h3>
-                <!-- 功能消耗：纹样解构 -->
                 <button 
                   @click="handleAnalyzePattern" 
                   class="group relative text-xs text-cinnabar border border-cinnabar/30 px-3 py-1.5 hover:bg-cinnabar hover:text-white transition-all flex items-center gap-1"
@@ -98,7 +135,7 @@
                   <span v-else>◎</span>
                   纹样解构
                   <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink text-white px-2 py-1 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    消耗 50 共创贡献值
+                    消耗 50 共创值
                   </span>
                 </button>
               </div>
@@ -123,7 +160,6 @@
             </div>
           </div>
 
-          <!-- 灵签 -->
           <div class="opacity-0 animate-enter-medium" style="animation-delay: 0.35s">
             <div class="flex items-start space-x-4 bg-paper border border-gold/30 p-4 rounded-lg shadow-sm">
               <div class="bg-cinnabar text-white w-10 h-10 flex items-center justify-center rounded-full shrink-0 font-calligraphy text-xl shadow-md">签</div>
@@ -134,19 +170,29 @@
             </div>
           </div>
 
-          <!-- 按钮区 -->
-          <div class="grid grid-cols-2 gap-4 opacity-0 animate-enter-medium" style="animation-delay: 0.4s">
-            <NuxtLink to="/chat" class="py-3 border border-ink text-ink hover:bg-ink hover:text-white transition-all duration-300 flex items-center justify-center space-x-2 group">
-              <span>🎨</span><span>生成类似作品</span>
+          <!-- 操作按钮组 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-0 animate-enter-medium" style="animation-delay: 0.4s">
+            <!-- 专家鉴定触发按钮 -->
+            <button 
+              v-if="!appraisal"
+              @click="openAppraiseModal" 
+              class="py-3 bg-indigo text-white hover:bg-indigo/90 transition-all shadow-md flex items-center justify-center space-x-2 font-bold"
+            >
+              <span>⚖️ 专家鉴定 (100 共创值)</span>
+            </button>
+            
+            <NuxtLink to="/chat" class="py-3 border border-ink text-ink hover:bg-ink hover:text-white transition-all flex items-center justify-center space-x-2">
+              <span>🎨</span><span>生成类似</span>
             </NuxtLink>
-            <button @click="handleShare" class="py-3 bg-cinnabar text-white hover:bg-red-800 transition-all duration-300 shadow-md flex items-center justify-center space-x-2">
+            
+            <button @click="handleShare" class="py-3 bg-cinnabar text-white hover:bg-red-800 transition-all shadow-md flex items-center justify-center space-x-2">
               <span>📤</span><span>一键分享 (+8)</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 文创衍生品兑换区 (改为积分制) -->
+      <!-- 文创兑换区 -->
       <div class="opacity-0 animate-enter-medium mb-16" style="animation-delay: 0.5s">
         <div class="flex items-center justify-center mb-10 space-x-4">
            <div class="h-[1px] w-12 bg-ink/20"></div>
@@ -163,17 +209,21 @@
             <div>
               <div class="text-xs text-cinnabar font-bold uppercase tracking-wider mb-3 flex items-center">
                  <span class="w-2 h-2 bg-cinnabar rounded-full mr-2 animate-pulse"></span>
-                 数字灵感 实体珍藏
+                 Heritage Creative
               </div>
               <h4 class="font-bold text-2xl text-ink font-serif mb-2">独家定制帆布袋</h4>
               <p class="text-sm text-ink/60 leading-relaxed mb-6">
-                将《{{ artwork.user_theme }}》实体化，采用 100% 天然纤维，环保印染。让非遗美学走进日常随行。
+                将《{{ artwork.user_theme }}》实体化。采用 100% 天然纤维，环保印染，经久耐用。
               </p>
             </div>
             <div class="flex items-center space-x-6 mt-4">
               <div class="flex flex-col">
-                <span class="text-3xl font-serif text-cinnabar font-bold">5900 共创贡献值</span>
+                <span class="text-3xl font-serif text-cinnabar font-bold">5900 共创值</span>
                 <span class="text-[10px] text-ink/40 line-through">¥ 59.00</span>
+                <!-- 公益捐赠提示 -->
+                <span class="text-[9px] text-gold font-bold mt-1 flex items-center gap-1">
+                   <span class="w-1 h-1 bg-gold rounded-full"></span> 包含 1% 非遗保护公益捐赠
+                </span>
               </div>
               <button class="flex-1 bg-ink text-white px-6 py-3 rounded hover:bg-cinnabar transition-colors shadow-lg tracking-widest text-sm font-bold">
                 立即兑换
@@ -183,28 +233,39 @@
         </div>
       </div>
 
-      <!-- 评论区 (保持不变) -->
+      <!-- 评论区 -->
       <div class="max-w-3xl mx-auto border-t border-ink/10 pt-12 mb-20 animate-enter-medium" style="animation-delay: 0.6s">
         <h3 class="font-calligraphy text-2xl text-ink mb-6">社区评论 <span class="text-sm text-ink/40 font-mono ml-2">{{ interactData.comments.length }}</span></h3>
         <div class="flex gap-4 mb-8">
           <div class="w-10 h-10 bg-indigo/10 rounded-full flex items-center justify-center text-indigo font-bold shrink-0">{{ currentUser?.username?.[0]?.toUpperCase() || '?' }}</div>
           <div class="flex-1">
-            <textarea v-model="commentText" class="w-full bg-white border border-ink/10 p-3 text-sm focus:border-indigo focus:outline-none rounded-sm" rows="2" placeholder="写下你的文化感悟..." :disabled="isCommentSubmitting"></textarea>
-            <div class="text-right mt-2"><button @click="postComment" :disabled="!commentText || isCommentSubmitting" class="bg-indigo text-white text-xs px-4 py-2 rounded-sm hover:bg-cinnabar disabled:opacity-50">发表评论</button></div>
+            <textarea v-model="commentText" class="w-full bg-white border border-ink/10 p-3 text-sm focus:border-indigo focus:outline-none rounded-sm transition-colors" rows="2" placeholder="写下你的文化感悟..." :disabled="isCommentSubmitting"></textarea>
+            <div class="text-right mt-2">
+              <button @click="postComment" :disabled="!commentText || isCommentSubmitting" class="bg-indigo text-white text-xs px-4 py-2 rounded-sm hover:bg-cinnabar transition-colors disabled:opacity-50 flex items-center gap-2">
+                <span v-if="isCommentSubmitting" class="animate-spin text-[10px]">◎</span>
+                发表评论
+              </button>
+            </div>
           </div>
         </div>
         <div class="space-y-6">
           <div v-for="(comment, idx) in interactData.comments" :key="idx" class="flex gap-4 pb-6 border-b border-ink/5 last:border-0">
-            <div class="w-8 h-8 bg-paper border border-ink/10 rounded-full flex items-center justify-center text-xs shrink-0 text-ink/60">{{ comment.User.username?.[0] }}</div>
+            <!-- 【关键修复】：兼容 comment.user 和 comment.User，并添加可选链防止报错 -->
+            <div class="w-8 h-8 bg-paper border border-ink/10 rounded-full flex items-center justify-center text-xs shrink-0 text-ink/60">
+              {{ (comment.user || comment.User)?.username?.[0] }}
+            </div>
             <div>
-              <div class="flex items-baseline gap-2 mb-1"><span class="text-sm font-bold text-ink">{{ comment.User.username }}</span><span class="text-[10px] text-ink/30">{{ new Date(comment.created_at).toLocaleDateString() }}</span></div>
+              <div class="flex items-baseline gap-2 mb-1">
+                <span class="text-sm font-bold text-ink">{{ (comment.user || comment.User)?.username }}</span>
+                <span class="text-[10px] text-ink/30">{{ new Date(comment.created_at).toLocaleDateString() }}</span>
+              </div>
               <p class="text-sm text-ink/70 leading-relaxed font-serif">{{ comment.content }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 底部推荐 (保持不变) -->
+      <!-- 底部推荐 -->
       <div v-if="recommendedArtworks.length > 0" class="opacity-0 animate-enter-medium mb-12 border-t border-ink/10 pt-16">
         <div class="flex justify-between items-end mb-8 px-2">
           <div><h3 class="font-calligraphy text-2xl text-ink">更多佳作</h3><p class="text-xs text-ink/40 tracking-widest mt-1 uppercase">Gengz Lai</p></div>
@@ -222,8 +283,34 @@
       </div>
     </div>
 
-    <!-- 弹窗组件挂载 -->
+    <!-- 弹窗挂载区 -->
     <ClientOnly>
+      <!-- 专家鉴定确认弹窗 -->
+      <Transition name="modal">
+        <div v-if="showAppraiseModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-ink/70 backdrop-blur-sm" @click="showAppraiseModal = false"></div>
+          <div class="bg-paper w-full max-w-sm rounded-lg shadow-2xl relative z-10 overflow-hidden border-t-4 border-indigo">
+             <div class="p-8 text-center">
+                <div class="w-12 h-12 bg-indigo/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">⚖️</div>
+                <h3 class="font-calligraphy text-2xl text-indigo mb-2">申请专家鉴定</h3>
+                <p class="text-sm text-ink/60 leading-relaxed mb-6">
+                  Agent 专家将从文化深度、构图精度、色彩调和三个维度对您的作品进行全方位评估，并授予唯一的稀有度印章。
+                </p>
+                <div class="bg-gold/10 text-gold text-xs font-bold py-2 rounded mb-6">
+                   本次服务需消耗 100 共创值
+                </div>
+                <div class="flex gap-3">
+                  <button @click="showAppraiseModal = false" class="flex-1 py-2 border border-ink/20 text-ink/60 rounded hover:bg-white transition-colors text-sm">取消</button>
+                  <button @click="confirmAppraise" :disabled="isAppraising" class="flex-1 py-2 bg-indigo text-white rounded hover:bg-cinnabar transition-colors text-sm font-bold flex items-center justify-center gap-2">
+                    <span v-if="isAppraising" class="animate-spin">◎</span>
+                    {{ isAppraising ? '鉴定中...' : '确认支付' }}
+                  </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- 兑换弹窗 -->
       <Transition name="modal">
         <div v-if="showProductModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -232,23 +319,27 @@
             <div v-if="orderStep === 'success'" class="p-8 text-center">
               <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6 border-2 border-green-200 mx-auto text-3xl text-green-600">✓</div>
               <h3 class="font-calligraphy text-2xl text-ink mb-2">兑换成功</h3>
-              <p class="text-sm text-ink/60 mb-8">订单已生成，共创贡献值已扣除。数字权益已发放至您的账户。</p>
+              <p class="text-sm text-ink/60 mb-8">订单已生成，共创值已扣除。我们已收到您的支持，感谢您对非遗公益的一份力量。</p>
               <button @click="closeSuccessModal" class="px-8 py-2 bg-indigo text-white rounded font-bold tracking-widest shadow-md">查看订单</button>
             </div>
-            <div v-else>
-              <div class="relative h-48 bg-gray-100"><img :src="optimizeDetailImage(artwork.mockup_url || artwork.art_image_url)" class="w-full h-full object-cover" /></div>
-              <div class="p-6">
-                <h3 class="font-calligraphy text-2xl mb-4">配送信息</h3>
-                <form @submit.prevent="handlePay" class="space-y-4">
-                  <input required v-model="orderForm.name" type="text" class="w-full border p-2 text-sm" placeholder="收货人姓名" />
-                  <input required v-model="orderForm.phone" type="tel" class="w-full border p-2 text-sm" placeholder="联系电话" />
-                  <textarea required v-model="orderForm.address" rows="2" class="w-full border p-2 text-sm" placeholder="收货详细地址"></textarea>
-                  <button type="submit" :disabled="isPaying" class="w-full py-3 bg-cinnabar text-white rounded font-bold tracking-widest shadow-md flex items-center justify-center">
-                    <span v-if="isPaying" class="animate-spin mr-2">◎</span>
-                    {{ isPaying ? '正在处理...' : '确认支付 5900 共创贡献值' }}
-                  </button>
-                </form>
+            <div v-else class="p-6">
+              <div class="flex justify-between items-center mb-4">
+                 <h3 class="font-calligraphy text-2xl text-indigo">配送信息</h3>
+                 <span class="text-[9px] bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">❤️ 1% 公益捐赠</span>
               </div>
+              <form @submit.prevent="handlePay" class="space-y-4">
+                <input required v-model="orderForm.name" type="text" class="w-full border border-ink/10 p-2 text-sm focus:border-cinnabar outline-none" placeholder="收货人姓名" />
+                <input required v-model="orderForm.phone" type="tel" class="w-full border border-ink/10 p-2 text-sm focus:border-cinnabar outline-none" placeholder="联系电话" />
+                <textarea required v-model="orderForm.address" rows="2" class="w-full border border-ink/10 p-2 text-sm focus:border-cinnabar outline-none" placeholder="收货详细地址"></textarea>
+                
+                <div class="pt-2">
+                  <p class="text-[10px] text-center text-ink/40 mb-3 italic">本次购买将为广西壮锦传承基金贡献约 59 共创值</p>
+                  <button type="submit" :disabled="isPaying" class="w-full py-3 bg-cinnabar text-white rounded font-bold tracking-widest shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95">
+                    <span v-if="isPaying" class="animate-spin text-sm">◎</span>
+                    {{ isPaying ? '正在处理...' : '确认扣除 5900 共创值' }}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -258,7 +349,6 @@
         <ShareModal v-if="showShareModal" :imageUrl="artwork.art_image_url" :title="artwork.user_theme" :interpretation="plainInterpretation" @close="showShareModal = false" />
       </Transition>
 
-      <!-- 纹样解构弹窗 (PatternModal) -->
       <Transition name="modal">
         <div v-if="showPatternModal" class="fixed inset-0 z-[130] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-ink/90 backdrop-blur-sm" @click="showPatternModal = false"></div>
@@ -268,7 +358,7 @@
             <div v-if="isAnalyzingPattern" class="py-8"><div class="spinner-zhuang mb-4 mx-auto"></div><p class="text-indigo/60 animate-pulse font-serif text-sm">AI 正在深度解析...</p></div>
             <div v-else-if="patternData" class="space-y-6 text-left">
               <div class="p-4 bg-white border border-ink/10 rounded-sm">
-                <p class="font-bold text-lg mb-1">{{ patternData.main?.name }}</p>
+                <p class="font-bold text-lg mb-1 text-ink">{{ patternData.main?.name }}</p>
                 <p class="text-ink/60 text-sm">{{ patternData.main?.desc }}</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
@@ -300,19 +390,20 @@ const router = useRouter()
 const { showToast } = useToast()
 const { currentUser } = useAuth()
 
-const ANALYZE_COST = 50; // 解构积分
-const ORDER_COST = 5900; // 文创积分
+const ANALYZE_COST = 50;
+const ORDER_COST = 5900;
+const APPRAISE_COST = 100;
 
 const showProductModal = ref(false)
 const showShareModal = ref(false)
 const showPatternModal = ref(false)
+const showAppraiseModal = ref(false) // 新增鉴定弹窗控制
 const assetsLoading = ref(true)
 
 const orderStep = ref<'form' | 'success'>('form')
 const orderForm = reactive({ name: '', phone: '', address: '' })
 const isPaying = ref(false)
 
-// 互动数据
 const interactData = reactive({ likes: 0, liked: false, comments: [] as any[] })
 const commentText = ref('')
 const isLikeSubmitting = ref(false)
@@ -322,12 +413,49 @@ const isCommentSubmitting = ref(false)
 const isAnalyzingPattern = ref(false)
 const patternData = ref<any>(null)
 
+// 专家鉴定逻辑
+const isAppraising = ref(false)
+const appraisal = computed(() => {
+  if (!artwork.value?.appraisal_data) return null;
+  try {
+    return JSON.parse(artwork.value.appraisal_data);
+  } catch (e) { return null; }
+});
+
+const openAppraiseModal = () => {
+  if (!currentUser.value) return showToast('请先登录', 'error')
+  if (currentUser.value.points < APPRAISE_COST) return showToast(`共创值不足 (${APPRAISE_COST} 共创值)`, 'error')
+  showAppraiseModal.value = true
+}
+
+const confirmAppraise = async () => {
+  isAppraising.value = true;
+  try {
+    const res: any = await $fetch('/api/agent/appraise', {
+      method: 'POST',
+      body: { artworkId: artwork.value.id, userId: currentUser.value.id }
+    });
+    
+    // 更新本地数据
+    artwork.value.appraisal_data = JSON.stringify(res.appraisal);
+    currentUser.value.points = res.remainingPoints;
+    localStorage.setItem('current_session', JSON.stringify(currentUser.value));
+    
+    showToast('鉴定完成，专家印章已加盖', 'success');
+    showAppraiseModal.value = false;
+  } catch (e: any) {
+    showToast(e.data?.message || '鉴定服务繁忙', 'error');
+  } finally {
+    isAppraising.value = false;
+  }
+};
+
 const handleAnalyzePattern = async () => {
   if (!currentUser.value) return showToast('请先登录', 'error')
   if (patternData.value) { showPatternModal.value = true; return }
-  if (currentUser.value.points < ANALYZE_COST) return showToast(`共创贡献值不足 (${ANALYZE_COST} 共创贡献值)`, 'error')
+  if (currentUser.value.points < ANALYZE_COST) return showToast(`共创值不足 (${ANALYZE_COST} 共创值)`, 'error')
 
-  if (!confirm(`解构这幅纹样将消耗 ${ANALYZE_COST} 共创贡献值，是否继续？`)) return
+  if (!confirm(`解构这幅纹样将消耗 ${ANALYZE_COST} 共创值，是否继续？`)) return
 
   isAnalyzingPattern.value = true
   showPatternModal.value = true
@@ -360,15 +488,12 @@ const openProductModal = () => {
 }
 
 const handlePay = async () => {
-  if (currentUser.value.points < ORDER_COST) return showToast(`共创贡献值不足 (${ORDER_COST} 共创贡献值)`, 'error')
+  if (currentUser.value.points < ORDER_COST) return showToast(`共创值不足 (${ORDER_COST} 共创值)`, 'error')
   isPaying.value = true
   try {
     await $fetch('/api/user/orders', {
       method: 'POST',
-      body: { 
-        userId: currentUser.value.id, 
-        orderData: { artworkId: artwork.value.id, ...orderForm } 
-      }
+      body: { userId: currentUser.value.id, orderData: { artworkId: artwork.value.id, ...orderForm } }
     })
     currentUser.value.points -= ORDER_COST
     localStorage.setItem('current_session', JSON.stringify(currentUser.value))
@@ -382,7 +507,6 @@ const handlePay = async () => {
 
 const closeSuccessModal = () => { showProductModal.value = false; router.push('/profile') }
 
-// 基础互动逻辑
 const fetchInteraction = async () => {
   if (!artwork.value) return
   try {
@@ -407,6 +531,7 @@ const toggleLike = async () => {
     await $fetch('/api/artwork/interact', { method: 'POST', body: { type: 'like', artworkId: artwork.value.id, userId: currentUser.value.id } })
   } catch (e) {
     interactData.liked = originalLiked; interactData.likes = originalLikes;
+    showToast('操作失败', 'error')
   } finally { isLikeSubmitting.value = false }
 }
 
@@ -428,11 +553,13 @@ const postComment = async () => {
 const handleShare = async () => {
   showShareModal.value = true
   if (currentUser.value) {
-    try { await $fetch('/api/user/action', { method: 'POST', body: { userId: currentUser.value.id, action: 'share' } }) } catch (e) {}
+    try { 
+      await $fetch('/api/user/action', { method: 'POST', body: { userId: currentUser.value.id, action: 'share' } }) 
+      showToast('分享成功，共创值 +8', 'success')
+    } catch (e) {}
   }
 }
 
-// 资源获取与优化
 const handleImgError = (e: Event, originalUrl: string) => {
   const img = e.target as HTMLImageElement; if (img.src !== originalUrl) img.src = originalUrl
 }
@@ -495,4 +622,12 @@ const displayFortune = computed(() => artwork.value?.fortune_text || localFortun
 .modal-enter-active .bg-paper, .modal-leave-active .bg-paper { transition: all 0.3s ease-out; }
 .modal-enter-from .bg-paper, .modal-leave-to .bg-paper { transform: scale(0.95) translateY(10px); opacity: 0; }
 .markdown-body { white-space: pre-wrap; }
+
+/* 鉴定印章入场动画 */
+@keyframes seal-in {
+  0% { transform: scale(3) rotate(0deg); opacity: 0; filter: blur(10px); }
+  70% { transform: scale(0.9) rotate(-20deg); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) rotate(-15deg); opacity: 1; }
+}
+.animate-seal-in { animation: seal-in 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67) forwards; }
 </style>
