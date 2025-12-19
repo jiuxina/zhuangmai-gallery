@@ -37,7 +37,7 @@
               </div>
               <div class="flex items-baseline gap-1">
                  <span class="text-xl font-bold text-gold">{{ copyrightEarnings }}</span>
-                 <span class="text-xs text-ink/50">共创贡献值</span>
+                 <span class="text-xs text-ink/50">共创值</span>
               </div>
               <p class="text-[10px] text-ink/40 mt-1">来自他人抽卡的分成收益</p>
             </div>
@@ -81,13 +81,29 @@
             <div v-for="artwork in myCollection" :key="artwork.id" class="group bg-white p-3 shadow-sm hover:shadow-lg transition-all border border-ink/5 relative flex flex-col">
               <div class="aspect-[4/3] overflow-hidden bg-gray-100 relative mb-3">
                 <img :src="optimizeImage(artwork.art_image_url)" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                <div v-if="artwork.status === 'ACCEPTED'" class="absolute inset-0 bg-gold/20 flex items-center justify-center backdrop-blur-[1px] z-10"><div class="bg-white/90 px-4 py-2 border-2 border-gold text-gold font-bold text-xs tracking-widest shadow-lg transform -rotate-12">已收录·可分润</div></div>
-                <div v-else-if="artwork.status === 'SUBMITTED'" class="absolute inset-0 bg-indigo/20 flex items-center justify-center backdrop-blur-[1px] z-10"><div class="bg-indigo text-white px-4 py-2 text-xs tracking-widest shadow-lg">审核中...</div></div>
+                
+                <!-- 【修复】证书按钮：加回来了 -->
+                <button 
+                  @click.stop="openCertificate(artwork)" 
+                  class="absolute top-2 right-2 bg-gold/90 backdrop-blur text-white text-[10px] px-2 py-1 rounded-sm tracking-widest hover:bg-cinnabar transition-colors shadow-sm flex items-center gap-1 z-20"
+                >
+                  <span>📜</span> 证书
+                </button>
+
+                <!-- 状态遮罩 -->
+                <div v-if="artwork.status === 'ACCEPTED'" class="absolute inset-0 bg-gold/20 flex items-center justify-center backdrop-blur-[1px] z-10">
+                  <div class="bg-white/90 px-4 py-2 border-2 border-gold text-gold font-bold text-xs tracking-widest shadow-lg transform -rotate-12">已收录·可分润</div>
+                </div>
+                <div v-else-if="artwork.status === 'SUBMITTED'" class="absolute inset-0 bg-indigo/20 flex items-center justify-center backdrop-blur-[1px] z-10">
+                  <div class="bg-indigo text-white px-4 py-2 text-xs tracking-widest shadow-lg">审核中...</div>
+                </div>
               </div>
+              
               <h4 class="font-bold text-sm text-ink font-serif truncate">{{ artwork.user_theme || '无题' }}</h4>
               <button v-if="artwork.status === 'OWNED'" @click="handleSubmit(artwork)" class="mt-3 w-full py-2 bg-paper border border-indigo/20 text-indigo text-xs hover:bg-indigo hover:text-white transition-colors">申请收录 (赚取收益)</button>
-              <div v-else class="mt-3 text-center text-[10px] text-ink/30 py-2 bg-paper">{{ artwork.status === 'ACCEPTED' ? '该作品正在为您赚取贡献值' : '等待管理员审核' }}</div>
+              <div v-else class="mt-3 text-center text-[10px] text-ink/30 py-2 bg-paper">{{ artwork.status === 'ACCEPTED' ? '该作品正在为您赚取共创值' : '等待管理员审核' }}</div>
             </div>
+            
             <NuxtLink to="/chat" class="border-2 border-dashed border-ink/10 flex flex-col items-center justify-center text-ink/30 hover:text-cinnabar hover:border-cinnabar/30 transition-all min-h-[280px] bg-paper/50 rounded-sm"><span class="text-2xl mb-2 font-serif">+</span><span class="text-xs tracking-widest">共创更多作品</span></NuxtLink>
           </div>
           <div v-else class="text-center py-20 text-ink/40"><p>暂无藏品，去画廊看看吧</p></div>
@@ -109,7 +125,11 @@
              >
                 <div class="aspect-[2/3] overflow-hidden relative">
                    <img :src="optimizeImage(card.CardTemplate.imageUrl)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                   
+                   <!-- 稀有度角标 -->
                    <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-black italic bg-black/60 text-white backdrop-blur-sm z-10" :class="{ 'text-gold': card.CardTemplate.rarity === 'SSR', 'text-purple-400': card.CardTemplate.rarity === 'SR' }">{{ card.CardTemplate.rarity }}</div>
+                   
+                   <!-- 编号 -->
                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
                       <div class="text-white font-mono text-[10px] opacity-90">NO.{{ String(card.cardNumber).padStart(4, '0') }}</div>
                    </div>
@@ -139,7 +159,7 @@
           <div v-else class="text-center py-20 text-ink/40"><p>暂无订单</p></div>
         </div>
 
-        <!-- 【新增】模块四：Agent 织梦日志 (传承卷轴) -->
+        <!-- 模块四：Agent 织梦日志 (传承卷轴) -->
         <div class="mt-12 opacity-0 animate-enter-medium" style="animation-delay: 0.4s">
           <div class="flex items-center gap-3 mb-6">
             <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-indigo/20 to-transparent"></div>
@@ -190,6 +210,7 @@
 
     <!-- 弹窗组件挂载区 -->
     <ClientOnly>
+      <!-- 证书弹窗 -->
       <Transition name="modal"><DigitalCertificate v-if="showCert" :title="certData.title" :image-url="certData.imageUrl" :hash="certData.hash" :owner="currentUser?.username || 'Unknown'" :date="certData.date" @close="showCert = false" /></Transition>
       
       <!-- 积分账单弹窗 -->
@@ -198,7 +219,7 @@
           <div class="absolute inset-0 bg-ink/80 backdrop-blur-sm" @click="showLogModal = false"></div>
           <div class="bg-paper w-full max-w-md rounded-lg shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[80vh] animate-enter-fast border-t-4 border-indigo">
             <div class="p-6 border-b border-ink/10 flex justify-between items-center bg-white">
-              <h3 class="font-calligraphy text-2xl text-indigo">贡献值记录</h3>
+              <h3 class="font-calligraphy text-2xl text-indigo">共创值变动记录</h3>
               <button @click="showLogModal = false" class="text-2xl text-ink/30 hover:text-cinnabar">×</button>
             </div>
             <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-fabric-texture">
@@ -227,16 +248,19 @@
              <div v-if="selectedCard.CardTemplate.rarity === 'R'" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-radial from-blue-500/20 to-transparent blur-[100px]"></div>
           </div>
           <div class="relative z-10 w-full max-w-lg flex flex-col items-center animate-card-pop">
-            <div class="relative w-72 md:w-80 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl transition-transform duration-500 border-4" :class="{'border-gold shadow-gold/50': selectedCard.CardTemplate.rarity === 'SSR','border-purple-400': selectedCard.CardTemplate.rarity === 'SR','border-blue-400': selectedCard.CardTemplate.rarity === 'R'}">
+            <div class="relative w-72 md:w-80 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl transition-transform duration-500 border-[6px] group perspective-1000" :class="{'border-gold shadow-[0_0_50px_rgba(212,160,23,0.5)]': selectedCard.CardTemplate.rarity === 'SSR','border-purple-400 shadow-[0_0_40px_rgba(168,85,247,0.4)]': selectedCard.CardTemplate.rarity === 'SR','border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)]': selectedCard.CardTemplate.rarity === 'R'}">
               <div v-if="selectedCard.CardTemplate.rarity === 'SSR'" class="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 z-20 w-[200%] h-[200%] -translate-x-full -translate-y-full animate-shine pointer-events-none"></div>
               <img :src="optimizeImage(selectedCard.CardTemplate.imageUrl)" class="w-full h-full object-cover" />
               <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-6 pt-12 z-10 text-center">
-                <div class="text-3xl font-black italic mb-2 tracking-tighter" :class="{'text-gold': selectedCard.CardTemplate.rarity === 'SSR','text-purple-400': selectedCard.CardTemplate.rarity === 'SR','text-blue-400': selectedCard.CardTemplate.rarity === 'R'}">{{ selectedCard.CardTemplate.rarity }}</div>
+                <div class="text-3xl font-black italic mb-2 tracking-tighter" :class="{'text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-sm': selectedCard.CardTemplate.rarity === 'SSR','text-purple-400': selectedCard.CardTemplate.rarity === 'SR','text-blue-400': selectedCard.CardTemplate.rarity === 'R'}">{{ selectedCard.CardTemplate.rarity }}</div>
                 <div class="text-white font-bold text-xl font-serif mb-1">{{ selectedCard.CardTemplate.name }}</div>
                 <div class="inline-block mt-2 px-3 py-1 border border-white/20 rounded-full bg-white/10 backdrop-blur-sm"><span class="text-xs text-white/60 font-mono mr-1">Unique ID:</span><span class="text-sm font-mono font-bold text-gold tracking-widest">No.{{ String(selectedCard.cardNumber).padStart(4, '0') }}</span></div>
               </div>
             </div>
-            <div class="mt-8 flex gap-4"><button @click="showCardModal = false" class="px-6 py-2 rounded-full border border-white/20 text-white/60 hover:text-white transition-colors text-sm">关闭展示</button></div>
+            <div class="mt-8 flex gap-4">
+              <button @click="showCardModal = false" class="px-6 py-2 rounded-full border border-white/20 text-white/60 hover:text-white hover:bg-white/10 transition-colors text-sm">关闭展示</button>
+              <button class="px-6 py-2 rounded-full bg-cinnabar text-white hover:bg-red-600 transition-colors shadow-lg text-sm font-bold tracking-wider flex items-center gap-2"><span>📥</span> 保存图片</button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -276,7 +300,7 @@ const lastSignInDate = ref<Date | null>(null)
 
 const optimizeImage = (url: string) => {
   if (!url || url.includes('placeholder')) return url;
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&q=80&output=webp&n=-1`
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&q=80&output=webp&n=-1`
 }
 
 const openCertificate = (artwork: any) => {
@@ -386,7 +410,6 @@ const handleSignIn = async () => {
 onMounted(async () => {
   isLoading.value = true;
   await refreshAllData();
-  // 页面挂载后可以自动生成一次日志
   if (currentUser.value) generateDiary();
   isLoading.value = false;
 })
@@ -436,4 +459,7 @@ definePageMeta({ middleware: 'auth' })
 }
 .animate-shine { animation: shine 3s infinite linear; }
 .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.animate-spin-slow { animation: spin 20s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.perspective-1000 { perspective: 1000px; }
 </style>
