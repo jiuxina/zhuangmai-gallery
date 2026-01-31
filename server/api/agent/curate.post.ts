@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -77,7 +75,5 @@ export default defineEventHandler(async (event) => {
         recommended_ids: []
       }
     };
-  } finally {
-    await prisma.$disconnect();
   }
 });

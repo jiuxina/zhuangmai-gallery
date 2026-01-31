@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '~/server/utils/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -52,7 +50,5 @@ export default defineEventHandler(async (event) => {
     return { success: true, user: { id: newUser.id, username: newUser.username } };
   } catch (error: any) {
     throw createError({ statusCode: 500, message: error.message || "注册失败" });
-  } finally {
-    await prisma.$disconnect();
   }
 });

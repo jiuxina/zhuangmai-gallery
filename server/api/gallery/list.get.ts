@@ -1,7 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   try {
@@ -14,7 +11,5 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     console.error(error);
     throw createError({ statusCode: 500, message: "无法获取画廊数据" });
-  } finally {
-    await prisma.$disconnect();
   }
 });

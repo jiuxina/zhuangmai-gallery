@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -68,7 +66,5 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error("Diary generation failed:", error);
     return { content: "史官正在沉思，请稍后再试..." };
-  } finally {
-    await prisma.$disconnect();
   }
 });

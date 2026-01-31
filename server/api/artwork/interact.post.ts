@@ -1,7 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -61,7 +58,5 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     console.error(error);
     throw createError({ statusCode: 500, message: "服务器内部错误" });
-  } finally {
-    await prisma.$disconnect();
   }
 });

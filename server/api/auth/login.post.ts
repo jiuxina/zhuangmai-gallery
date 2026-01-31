@@ -1,8 +1,5 @@
-
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '~/server/utils/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -58,7 +55,5 @@ export default defineEventHandler(async (event) => {
     }
     console.error(error);
     throw createError({ statusCode: 500, message: "服务器内部错误" });
-  } finally {
-    await prisma.$disconnect();
   }
 });
