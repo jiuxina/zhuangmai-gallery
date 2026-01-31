@@ -26,13 +26,40 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    // 安全重定向规则
     '/**/*.php': { redirect: { to: '/', statusCode: 301 } },
     '/wp-admin/**': { redirect: { to: '/', statusCode: 301 } },
-    '/wordpress/**': { redirect: { to: '/', statusCode: 301 } }
+    '/wordpress/**': { redirect: { to: '/', statusCode: 301 } },
+    
+    // API 缓存策略 - 优化性能
+    '/api/gallery/list': { 
+      cache: { maxAge: 60 } // 画廊列表缓存 60 秒
+    },
+    '/api/market/pools': { 
+      cache: { maxAge: 60 } // 卡池列表缓存 60 秒  
+    },
+    '/api/market/leaderboard': { 
+      cache: { maxAge: 30 } // 排行榜缓存 30 秒
+    },
+    '/api/bing': { 
+      cache: { maxAge: 3600 } // Bing 壁纸缓存 1 小时
+    }
   },
   
   runtimeConfig: {
     dashscopeApiKey: '', 
     public: {}
+  },
+
+  // 生产环境优化
+  nitro: {
+    compressPublicAssets: true,
+    minify: true
+  },
+
+  // 实验性优化功能
+  experimental: {
+    payloadExtraction: false,
+    componentIslands: false
   }
 })

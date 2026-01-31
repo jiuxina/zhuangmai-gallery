@@ -77,7 +77,6 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
 import TermsModal from '~/components/TermsModal.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'

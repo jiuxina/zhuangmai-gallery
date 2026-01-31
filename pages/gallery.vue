@@ -112,7 +112,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 
 const { currentUser } = useAuth()

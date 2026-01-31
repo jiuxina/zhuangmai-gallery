@@ -269,7 +269,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted, onActivated } from 'vue'
 import DigitalCertificate from '~/components/DigitalCertificate.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'
