@@ -67,7 +67,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
 
 const { showToast } = useToast()

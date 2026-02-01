@@ -380,7 +380,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, reactive, onMounted } from 'vue'
 import ShareModal from '~/components/ShareModal.vue'
 import { useToast } from '~/composables/useToast'
 import { useAuth } from '~/composables/useAuth'

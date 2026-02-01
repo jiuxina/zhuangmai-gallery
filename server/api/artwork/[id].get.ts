@@ -1,7 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   const artworkId = parseInt(event.context.params.id);
@@ -27,7 +24,5 @@ export default defineEventHandler(async (event) => {
     }
     console.error(error);
     throw createError({ statusCode: 500, message: "无法获取作品数据" });
-  } finally {
-    await prisma.$disconnect();
   }
 });

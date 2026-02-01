@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   // 简易鉴权 (实际项目请使用更严格的中间件)
@@ -94,7 +92,5 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error(error);
     throw createError({ statusCode: 500, message: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 });

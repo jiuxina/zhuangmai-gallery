@@ -1,7 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -36,7 +33,5 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     console.error(error);
     return null;
-  } finally {
-    await prisma.$disconnect();
   }
 });

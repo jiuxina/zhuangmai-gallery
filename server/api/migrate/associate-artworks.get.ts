@@ -1,7 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '~/server/utils/prisma';
 
 export default defineEventHandler(async (event) => {
   console.log("🚀 Starting artwork association migration...");
@@ -54,7 +51,5 @@ export default defineEventHandler(async (event) => {
       statusCode: 500,
       statusMessage: "Artwork association failed.",
     });
-  } finally {
-    await prisma.$disconnect();
   }
 });
